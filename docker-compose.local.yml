@@ -62,6 +62,29 @@ services:
       - app
     ports:
       - "8081:8081"
+  gripl-nlpsql:
+    build:
+      context: ./gripl/gripl-sql-llm
+      dockerfile: Dockerfile
+
+    image: gripl-nlpsql:latest
+
+    container_name: gripl-nlpsql
+
+    restart: unless-stopped
+
+    env_file:
+      - .env.local
+
+    volumes:
+
+      - huggingface_cache:/root/.cache/huggingface
+
+    networks:
+      - app
+
+    ports:
+      - "8082:8082"
 
   gripl-neo4j:
     image: neo4j:5-community
