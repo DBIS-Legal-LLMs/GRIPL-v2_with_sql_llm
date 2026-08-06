@@ -20,6 +20,7 @@ interface EvaluationConfigDefaultSettingsProps {
     useRag: boolean;
     ragMode: string;
     evaluateRag: boolean;
+    useSQLLM: boolean;
     activitiesOnly: boolean;
     setDefaultEndpointChoice: (endpoint: EndpointChoice) => void;
     setDefaultPresetEndpoint: (endpoint: string) => void;
@@ -30,6 +31,7 @@ interface EvaluationConfigDefaultSettingsProps {
     setUseRag: (v: boolean) => void;
     setRagMode: (v: string) => void;
     setEvaluateRag: (v: boolean) => void;
+    setuseSQLLM: (v: boolean) => void;
     setActivitiesOnly: (v: boolean) => void;
 }
 
@@ -52,6 +54,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         useRag,
         ragMode,
         evaluateRag,
+        useSQLLM,
         activitiesOnly,
         setDefaultEndpointChoice,
         setDefaultPresetEndpoint,
@@ -62,6 +65,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         setUseRag,
         setRagMode,
         setEvaluateRag,
+        setuseSQLLM,
         setActivitiesOnly,
     } = props;
 
@@ -218,6 +222,19 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                             </div>
                         </>
                     )}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <Label htmlFor="use-sql-llm-toggle">Use RAG</Label>
+                            <p className="text-xs text-muted-foreground">
+                                The LLM receives GDPR knowledge of SQL databases.
+                            </p>
+                        </div>
+                        <Switch
+                            id="use-sql-llm-toggle"
+                            checked={useSQLLM}
+                            onCheckedChange={setuseSQLLM}
+                        />
+                    </div>
                 </div>
             </CardContent>
         </Card>
