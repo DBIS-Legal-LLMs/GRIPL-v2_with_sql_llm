@@ -32,6 +32,7 @@ export default function EvaluationConfig({ className, children, datasets, onMult
         useRag: config.useRag,
         ragMode: config.ragMode,
         evaluateRag: config.evaluateRag,
+        useSQLLM: config.useSQLLM,
         activitiesOnly: config.activitiesOnly,
         setDefaultEndpointChoice: (v) => config.setDefaultEndpointChoice(v),
         setDefaultPresetEndpoint: config.setDefaultPresetEndpoint,
@@ -44,6 +45,7 @@ export default function EvaluationConfig({ className, children, datasets, onMult
         setUseRag: config.setUseRag,
         setRagMode: config.setRagMode,
         setEvaluateRag: config.setEvaluateRag,
+        setuseSQLLM: config.setuseSQLLM,
         setActivitiesOnly: config.setActivitiesOnly,
     });
 
@@ -79,6 +81,7 @@ export default function EvaluationConfig({ className, children, datasets, onMult
                         useRag={config.useRag}
                         ragMode={config.ragMode}
                         evaluateRag={config.evaluateRag}
+                        useSQLLM={config.useSQLLM}
                         activitiesOnly={config.activitiesOnly}
                         setDefaultEndpointChoice={config.setDefaultEndpointChoice}
                         setDefaultPresetEndpoint={config.setDefaultPresetEndpoint}
@@ -89,6 +92,7 @@ export default function EvaluationConfig({ className, children, datasets, onMult
                         setUseRag={config.setUseRag}
                         setRagMode={config.setRagMode}
                         setEvaluateRag={config.setEvaluateRag}
+                        setuseSQLLM={config.setuseSQLLM}
                         setActivitiesOnly={config.setActivitiesOnly}
                     />
 
