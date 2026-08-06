@@ -224,7 +224,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                     )}
                     <div className="flex items-center justify-between">
                         <div>
-                            <Label htmlFor="use-sql-llm-toggle">Use RAG</Label>
+                            <Label htmlFor="use-sql-llm-toggle">Use SQL LLM </Label>
                             <p className="text-xs text-muted-foreground">
                                 The LLM receives GDPR knowledge of SQL databases.
                             </p>
