@@ -8,3 +8,4 @@ pydantic-settings==2.13.1
 pydantic_core==2.46.1
 json-repair==0.61.7
 alembic==1.18.4
+python-dotenv==1.2.2
