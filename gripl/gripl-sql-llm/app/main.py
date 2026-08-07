@@ -7,6 +7,8 @@ from app.llm_component.llm import LLM
 from app.find_intention_component.find_intention import FindIntention
 from app.find_intention_component.schemas import IntentionAnswer
 from app.prompt_management_component.prompt_management import PromptManagement
+from app.sql_generation_component.sql_generation import SQLGenerator
+from app.sql_generation_component.schemas import SQLGenerationAnswer
 
 
 load_dotenv()
@@ -38,11 +40,14 @@ app.add_middleware(
 
 @app.post("/analyze", include_in_schema=False,response_model=None)
 def analyse(analysis_request: AnalysisSQLRequest = Depends()):
+    grog_api_key = os.getenv("GROQ_API_KEY")
+    
+
+
 
 
 
     ## TODO replace dummy response with correct answer
-
 
     return {
         "criticalElements": [
