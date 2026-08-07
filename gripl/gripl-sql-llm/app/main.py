@@ -41,7 +41,7 @@ app.add_middleware(
 @app.post("/analyze", include_in_schema=False,response_model=None)
 def analyse(analysis_request: AnalysisSQLRequest = Depends()):
     grog_api_key = os.getenv("GROQ_API_KEY")
-    
+
 
 
 
