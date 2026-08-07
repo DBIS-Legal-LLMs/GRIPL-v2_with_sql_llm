@@ -1,6 +1,20 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .schemas import AnalysisSQLRequest
+from dotenv import load_dotenv
+import os
+from app.llm_component.llm import LLM
+from pydantic import BaseModel, ConfigDict
+from typing import List
+
+load_dotenv()
+
+class UserData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    age: int
+    hobbies: List[str]
+
 
 app = FastAPI(
     title="GRIPL SQL LLM Service",
@@ -29,6 +43,30 @@ def analyse(analysis_request: AnalysisSQLRequest = Depends()):
     print("received request")
     print(analysis_request)
     print("in analys")
+
+
+    grog_api_key = os.getenv("GROQ_API_KEY")
+    
+
+    system_prompt = f"Gib die Profildaten exakt im JSON-Format aus. Verwende keine Erklärungen."
+
+    user_name = "Max"
+    user_age = 28
+    user_hobbies = ["Lesen", "schreiben"]
+
+    user_prompt = f"Der Nutzer heißt {user_name}, ist {user_age} Jahre alt und mag {', '.join(user_hobbies)}."
+
+    llm_component = LLM(
+        api_key=grog_api_key,
+        model_url="",
+        model_name="openai/gpt-oss-120b",
+        schema_output=UserData
+    )
+
+    ans = llm_component.get_answer_from_llm(user_prompt, system_prompt)
+
+
+
     return {
         "criticalElements": [
             {
