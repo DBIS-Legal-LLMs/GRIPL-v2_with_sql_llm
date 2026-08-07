@@ -9,7 +9,9 @@ from app.find_intention_component.schemas import IntentionAnswer
 from app.prompt_management_component.prompt_management import PromptManagement
 from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_generation_component.schemas import SQLGenerationAnswer
-
+from app.database.db import Base, engine
+from app.database.models import *
+from app.sql_execution_component.sql_execution import SQLExecution
 
 load_dotenv()
 
@@ -24,6 +26,13 @@ app = FastAPI(
     version="0.1.0",
     root_path="/sql-llm",
 )
+
+# --------------------------------------------------------------------------
+# DB initialisation
+# --------------------------------------------------------------------------
+
+Base.metadata.create_all(bind=engine)
+
 
 # ---------------------------------------------------------------------------
 # CORS
@@ -41,11 +50,6 @@ app.add_middleware(
 @app.post("/analyze", include_in_schema=False,response_model=None)
 def analyse(analysis_request: AnalysisSQLRequest = Depends()):
     grog_api_key = os.getenv("GROQ_API_KEY")
-
-
-
-
-
 
     ## TODO replace dummy response with correct answer
 
