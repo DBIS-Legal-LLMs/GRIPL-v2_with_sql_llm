@@ -1,0 +1,33 @@
+User Question:
+        {question}
+
+        Available Intents:
+
+        - definition
+
+        Description: The question is about the definition of a word.
+
+        - actor
+        Description: The question is contains a actor or a role or a group of persons.
+
+        - find_legal_basis
+
+        Description:
+        Questions about the GDPR legal basis that justifies or enables processing, rights, or obligations (e.g. consent, contract, legal obligation, legitimate interest).
+
+        - find_processing_activity
+
+        Description:
+        Questions about data processing activities under the GDPR, including what processing is performed and how data is processed.
+
+       - find_rights
+
+        Description:
+        Questions about GDPR rights held by actors, individuals, or organizations. Use this intent when the user asks what rights exist, who has which rights, or what someone is allowed to do under the GDPR.
+
+        Instructions:
+        Select only from the intents listed above.
+        Return ALL intents that are even indirectly relevant. Prefer over-inclusion rather than under-inclusion.
+        Do not generate SQL.
+        Return the result strictly valid JSON format without any comment.
+        {{ "intents": ["<intent_name_1>","<intent_name_2>"] }}

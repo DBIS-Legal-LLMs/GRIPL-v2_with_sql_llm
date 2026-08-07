@@ -4,16 +4,14 @@ from .schemas import AnalysisSQLRequest
 from dotenv import load_dotenv
 import os
 from app.llm_component.llm import LLM
-from pydantic import BaseModel, ConfigDict
-from typing import List
+from app.find_intention_component.find_intention import FindIntention
+from app.find_intention_component.schemas import IntentionAnswer
+from app.prompt_management_component.prompt_management import PromptManagement
+
 
 load_dotenv()
 
-class UserData(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    name: str
-    age: int
-    hobbies: List[str]
+
 
 
 app = FastAPI(
@@ -43,11 +41,7 @@ def analyse(analysis_request: AnalysisSQLRequest = Depends()):
 
 
 
-    grog_api_key = os.getenv("GROQ_API_KEY")
-
-
-
-
+    ## TODO replace dummy response with correct answer
 
 
     return {
