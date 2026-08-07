@@ -1,0 +1,17 @@
+Database schema:
+{db_schema}
+
+Question: {question}
+
+Generated SQL: {generated_query}
+
+
+
+Error: {error_message or 'none'}
+
+Intentions of the question: {question}
+
+Decide: Is the SQL correct and does it answer the question?
+- If an error is reported, fix it with correct_wrong_sql_query.
+- If a WHERE value looks like a vague user phrase, correct it with find_specific_row_based_on_intent.
+- Otherwise, return the final SQL as JSON: {{"query": "..."}}

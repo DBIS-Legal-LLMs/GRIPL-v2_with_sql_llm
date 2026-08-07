@@ -1,0 +1,50 @@
+from app.llm_component.llm import LLM
+from app.prompt_management_component.prompt_management import PromptManagement
+from pathlib import Path
+
+
+class SQLPostProcessing:
+
+    def __init__(self,
+                 llm: LLM,
+                 prompt_management: PromptManagement,
+                 ):
+        self.llm = llm
+        self.prompt_management = prompt_management
+
+        base_dir = Path(__file__).parent
+
+        self.system_prompt_path = base_dir / "system_prompt.txt"
+        self.user_prompt_path = base_dir / "user_prompt.txt"
+
+    def post_process_generated_query(self,
+                                     db_schema: str,
+                                     question: str,
+                                     generated_query: str,
+                                     error_message: str,
+                                     intentions: list[str],
+                                     ):
+        try:
+
+            user_prompt = self.prompt_management.fill_prompt(
+                self.user_prompt_path,
+                question=question,
+                db_schema=db_schema,
+                generated_query=generated_query,
+                error_message=error_message,
+                intentions=intentions,
+            )
+
+            system_prompt = self.prompt_management.fill_prompt(
+                self.system_prompt_path,
+            )
+
+            return self.llm.get_answer_from_llm(
+                user_prompt,
+                system_prompt,
+            ).final_query
+
+
+        except Exception as e:
+            print(e)
+            return ""
