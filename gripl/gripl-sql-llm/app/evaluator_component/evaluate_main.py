@@ -9,15 +9,17 @@ from app.sql_post_processing_component.sql_post_processing import SQLPostProcess
 from sentence_transformers import SentenceTransformer
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
+from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
 from dotenv import load_dotenv
 import os
-from app.config.model_name import INTENTION_MODEL, SQL_GENERATION_MODEL,POST_PROCESSING_MODEL
+from app.config.model_name import INTENTION_MODEL, SQL_GENERATION_MODEL, POST_PROCESSING_MODEL
 from pathlib import Path
-
 
 load_dotenv()
 
 prompt_management = PromptManagement()
+
+bpmn_data_pre_processor = BPMNDataPreProcessor()
 
 intention_llm = LLM(
     model_name=INTENTION_MODEL,
@@ -69,6 +71,7 @@ pipeline = PipelineComponent(
     sql_execution=sql_execution,
     sql_generation=sql_generator,
     post_processing=sql_post_processing,
+    bpmn_data_pre_processor=bpmn_data_pre_processor,
 )
 
 project_root = Path(__file__).resolve().parents[4]
