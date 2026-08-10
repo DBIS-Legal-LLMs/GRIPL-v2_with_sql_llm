@@ -1,5 +1,3 @@
-import os
-
 from .evaluator import Evaluator
 from app.pipeline_component.pipeline import PipelineComponent
 from app.data_loader_component.data_loader import DataLoader
@@ -13,27 +11,30 @@ from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
 from dotenv import load_dotenv
 import os
+from app.config.model_name import INTENTION_MODEL, SQL_GENERATION_MODEL,POST_PROCESSING_MODEL
+from pathlib import Path
+
 
 load_dotenv()
 
 prompt_management = PromptManagement()
 
 intention_llm = LLM(
-    model_name="openai/gpt-oss-120b",
+    model_name=INTENTION_MODEL,
     model_url="",
     api_key=os.getenv("OPENAI_API_KEY"),
     schema_output=None
 )
 
 sql_generator_llm = LLM(
-    model_name="openai/gpt-oss-120b",
+    model_name=SQL_GENERATION_MODEL,
     model_url="",
     api_key=os.getenv("OPENAI_API_KEY"),
     schema_output=None
 )
 
 sql_post_processing_llm = LLM(
-    model_name="openai/gpt-oss-120b",
+    model_name=POST_PROCESSING_MODEL,
     model_url="",
     api_key=os.getenv("OPENAI_API_KEY"),
     schema_output=None
@@ -70,7 +71,13 @@ pipeline = PipelineComponent(
     post_processing=sql_post_processing,
 )
 
-data_loader = DataLoader()
+project_root = Path(__file__).resolve().parents[4]
+
+dataset_path = project_root / "dataset" / "evaluation_data.csv"
+
+data_loader = DataLoader(
+    str(dataset_path),
+)
 
 evaluator = Evaluator(
     pipe_line=pipeline,

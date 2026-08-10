@@ -2,8 +2,9 @@ import pandas as pd
 
 class DataLoader:
 
-    def __init__(self,):
-        pass
+    def __init__(self,
+                 file_path: str):
+        self.file_path=file_path
 
-    def load_evaluation_data_set_as_pd(self, file_path):
-        return pd.read_csv(file_path)
+    def load_evaluation_data_set_as_pd(self, ):
+        return pd.read_csv(self.file_path)
