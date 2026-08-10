@@ -16,8 +16,11 @@ class Evaluator:
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
-            print("pd ")
-            print(eval_pd_set)
+            for index, row in eval_pd_set.iterrows():
+                current_bpmn_file = row["bpmn_xml"]
+                current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
+                
+
 
         except Exception as e:
             print(e)

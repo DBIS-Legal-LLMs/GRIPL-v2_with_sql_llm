@@ -6,5 +6,5 @@ class DataLoader:
                  file_path: str):
         self.file_path=file_path
 
-    def load_evaluation_data_set_as_pd(self, ):
+    def load_evaluation_data_set_as_pd(self, )-> pd.DataFrame:
         return pd.read_csv(self.file_path)
