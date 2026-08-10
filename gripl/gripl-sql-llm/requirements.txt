@@ -16,3 +16,4 @@ onnxruntime==1.17.3
 tokenizers==0.20.3
 numpy==1.26.4
 transformers==4.46.3
+pandas==2.2.3
