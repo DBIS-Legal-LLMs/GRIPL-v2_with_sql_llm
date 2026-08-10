@@ -19,7 +19,7 @@ class Evaluator:
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
                 current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
-                
+
 
 
         except Exception as e:
