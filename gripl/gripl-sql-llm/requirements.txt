@@ -9,3 +9,10 @@ pydantic_core==2.46.1
 json-repair==0.61.7
 alembic==1.18.4
 python-dotenv==1.2.2
+chroma-hnswlib==0.7.6
+chromadb==0.5.23
+sentence-transformers==3.0.1
+onnxruntime==1.17.3
+tokenizers==0.20.3
+numpy==1.26.4
+transformers==4.46.3
