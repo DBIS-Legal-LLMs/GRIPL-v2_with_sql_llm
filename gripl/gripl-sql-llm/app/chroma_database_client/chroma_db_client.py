@@ -36,5 +36,20 @@ class ChromaDatabaseClient:
 
 
     def get_top_k_results(self, query):
-        collection = self.get_collection()
+
+        try:
+            collection = self.get_collection()
+
+            embedded_query = self.embedding_model.encode(query)
+
+            results = collection.query(
+                query_embeddings=[embedded_query.tolist()],
+                n_results=5
+            )
+
+            return results["documents"][0]
+        except Exception as e:
+            print(e)
+            return []
+
 
