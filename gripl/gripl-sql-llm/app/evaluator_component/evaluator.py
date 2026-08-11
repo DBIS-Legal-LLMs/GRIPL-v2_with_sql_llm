@@ -1,6 +1,6 @@
 from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
-
+import re
 
 class Evaluator:
 
@@ -20,6 +20,17 @@ class Evaluator:
                 current_bpmn_file = row["bpmn_xml"]
                 current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
 
+
+
+                for ac in current_activities_fields:
+                    match = re.search(r'\bname="([^"]+)"', ac)
+
+                    if match:
+                        activity_name = match.group(1)
+                        print(activity_name)
+
+
+                break
 
 
         except Exception as e:
