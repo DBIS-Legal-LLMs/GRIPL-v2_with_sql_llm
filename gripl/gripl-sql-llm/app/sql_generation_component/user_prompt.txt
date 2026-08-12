@@ -2,8 +2,8 @@ You are a SQL generation engine.
 
 Your task is to generate a correct SQL query using ONLY the provided database schema.
 
-QUESTION:
-{question}
+BPMN Activity field
+{activity_field}
 
 ---
 
@@ -52,17 +52,11 @@ Never omit required relationship tables just because they are not listed as mand
    - Use only relationships defined in the schema
    - Do not create implicit or assumed joins
 
-7. Fully qualify all columns:
-   table_name.column_name
-
-8. Do NOT use table aliases.
-
-9. Reasoning process (internal, do not output):
+7. Reasoning process (internal, do not output):
    - Understand question intent and look at the Mandatory Tables provided.
    - Identify relevant schema entities within those tables.
    - Determine required joins.
    - Generate SQL query.
-   - If the intent is "definition", use only column definitions from the table definition. But filter only on the table name of the definition table.
 
 
 10. Always include all tables required by JOIN paths in TABLE RELATIONSHIPS.

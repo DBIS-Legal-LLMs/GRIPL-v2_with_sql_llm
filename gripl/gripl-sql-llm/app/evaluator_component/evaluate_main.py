@@ -6,6 +6,7 @@ from app.find_intention_component.find_intention import FindIntention
 from app.find_intention_component.schemas import IntentionAnswer
 from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
+from app.sql_generation_component.schemas import SQLGenerationAnswer
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
 from sentence_transformers import SentenceTransformer
 from app.llm_component.llm import LLM
@@ -32,8 +33,8 @@ intention_llm = LLM(
 sql_generator_llm = LLM(
     model_name=SQL_GENERATION_MODEL,
     model_url="",
-    api_key=os.getenv("OPENAI_API_KEY"),
-    schema_output=None
+    api_key=os.getenv("GROQ_API_KEY"),
+    schema_output=SQLGenerationAnswer
 )
 
 sql_post_processing_llm = LLM(

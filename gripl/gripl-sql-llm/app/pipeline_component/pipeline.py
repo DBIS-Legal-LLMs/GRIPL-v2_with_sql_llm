@@ -4,7 +4,7 @@ from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
-
+from app.database.utils import get_db_schema_string
 
 class PipelineComponent:
 
@@ -40,6 +40,17 @@ class PipelineComponent:
 
             if not intentions:
                 return []
+
+            db_schema = get_db_schema_string()
+
+            generated_query = self.sql_generation.generate_query(
+                activity_field=activity_field,
+                db_schema=db_schema,
+                intentions=intentions,
+            )
+
+            print("generarad query ")
+            print(generated_query)
 
 
 
