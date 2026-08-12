@@ -25,7 +25,7 @@ bpmn_data_pre_processor = BPMNDataPreProcessor()
 intention_llm = LLM(
     model_name=INTENTION_MODEL,
     model_url="",
-    api_key=os.getenv("OPENAI_API_KEY"),
+    api_key=os.getenv("GROQ_API_KEY"),
     schema_output=IntentionAnswer
 )
 
