@@ -33,13 +33,16 @@ class PipelineComponent:
             print(e)
             return []
 
-    def get_answer_if_critical(self, activity_field: str):
+    def get_sid_if_critical(self, activity_field: str)->list[str]:
         try:
 
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
-            print("intentiosn form comp")
-            print(intentions)
+
+            if not intentions:
+                return []
+
+
 
         except Exception as e:
             print(e)
-            return ""
+            return []
