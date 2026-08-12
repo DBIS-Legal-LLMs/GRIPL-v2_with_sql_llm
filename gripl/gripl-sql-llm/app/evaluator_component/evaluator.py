@@ -20,14 +20,13 @@ class Evaluator:
                 current_bpmn_file = row["bpmn_xml"]
                 current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
 
+                for activity in current_activities_fields:
+                    self.pipe_line.get_answer_if_critical(activity)
 
 
-                for ac in current_activities_fields:
-                    match = re.search(r'\bname="([^"]+)"', ac)
 
-                    if match:
-                        activity_name = match.group(1)
-                        print(activity_name)
+
+
 
 
                 break
