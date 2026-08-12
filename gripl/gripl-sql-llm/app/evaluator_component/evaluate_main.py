@@ -3,6 +3,7 @@ from app.pipeline_component.pipeline import PipelineComponent
 from app.data_loader_component.data_loader import DataLoader
 from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
 from app.find_intention_component.find_intention import FindIntention
+from app.find_intention_component.schemas import IntentionAnswer
 from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
@@ -25,7 +26,7 @@ intention_llm = LLM(
     model_name=INTENTION_MODEL,
     model_url="",
     api_key=os.getenv("OPENAI_API_KEY"),
-    schema_output=None
+    schema_output=IntentionAnswer
 )
 
 sql_generator_llm = LLM(
@@ -48,9 +49,12 @@ chroma_db_client = ChromaDatabaseClient(
     model
 )
 
+sql_execution = SQLExecution()
+
 intention_component = FindIntention(
     llm=intention_llm,
     prompt_management=prompt_management,
+    sql_execution=sql_execution
 )
 
 sql_generator = SQLGenerator(
@@ -62,8 +66,6 @@ sql_post_processing = SQLPostProcessing(
     llm=sql_post_processing_llm,
     prompt_management=prompt_management,
 )
-
-sql_execution = SQLExecution()
 
 pipeline = PipelineComponent(
     chroma_db_client=chroma_db_client,

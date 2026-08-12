@@ -32,3 +32,13 @@ class PipelineComponent:
         except Exception as e:
             print(e)
             return []
+
+    def get_answer_if_critical(self, activity_field: str):
+        try:
+
+            intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
+            print("intentions:", intentions)
+
+        except Exception as e:
+            print(e)
+            return ""
