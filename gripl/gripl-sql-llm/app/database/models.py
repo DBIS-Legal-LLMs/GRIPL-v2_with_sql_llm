@@ -1411,3 +1411,9 @@ class UebermittlungsRegelungAusnahme(Base):
 
     regelungen = relationship("UebermittlungsRegelung", secondary="uebermittlungs_regelung_ausnahme",
                               back_populates="ausnahmen")
+
+
+class Category(Base):
+    __tablename__ = "category"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
