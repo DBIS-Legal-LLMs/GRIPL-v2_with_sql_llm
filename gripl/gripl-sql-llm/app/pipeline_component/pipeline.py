@@ -37,7 +37,8 @@ class PipelineComponent:
         try:
 
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
-            print("intentions:", intentions)
+            print("intentiosn form comp")
+            print(intentions)
 
         except Exception as e:
             print(e)
