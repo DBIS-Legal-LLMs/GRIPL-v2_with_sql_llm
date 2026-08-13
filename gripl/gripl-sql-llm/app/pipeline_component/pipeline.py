@@ -33,13 +33,13 @@ class PipelineComponent:
             print(e)
             return []
 
-    def get_sid_and_reason_if_critical(self, activity_field: str)->str:
+    def get_sid_and_reason_if_critical(self, activity_field: str)->dict[str, str]:
         try:
 
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
 
             if not intentions:
-                return []
+                return {}
 
             db_schema = get_db_schema_string()
 
@@ -58,13 +58,22 @@ class PipelineComponent:
 
             post_processed_query = self.post_processing.post_process_generated_query(
                 db_schema=db_schema,
-
+                activity_field=activity_field,
+                generated_query=generated_query,
+                error_message=error_message,
+                intentions=intentions,
             )
 
+            results_of_post_processed_query = self.sql_execution.get_sql_query_results(generated_query)
 
+            if post_processed_query:
+                return {
+                    "value": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
+                    "reason": results_of_post_processed_query ,
+                }
 
-
+            return {}
 
         except Exception as e:
             print(e)
-            return ""
+            return {}
