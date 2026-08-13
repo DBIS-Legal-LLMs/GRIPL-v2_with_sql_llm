@@ -47,9 +47,9 @@ class FindIntention:
 
     def get_all_intentions(self,)->list[str]:
         try:
-            row = self.sql_execution.get_sql_query_results("SELECT gdpr_criteria.short_name FROM gdpr_criteria")
+            row = self.sql_execution.get_sql_query_results("SELECT category.name FROM category")
 
-            return [r.get('short_name', '') for r in row ]
+            return [r.get('name', '') for r in row ]
         except Exception as e:
             print(e)
             return []
