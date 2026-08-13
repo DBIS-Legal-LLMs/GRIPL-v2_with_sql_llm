@@ -21,7 +21,7 @@ class Evaluator:
                 current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
 
                 for activity in current_activities_fields:
-                    self.pipe_line.get_sid_if_critical(activity)
+                    self.pipe_line.get_sid_and_reason_if_critical(activity)
 
 
 
