@@ -33,7 +33,7 @@ class PipelineComponent:
             print(e)
             return []
 
-    def get_sid_if_critical(self, activity_field: str)->list[str]:
+    def get_sid_and_reason_if_critical(self, activity_field: str)->str:
         try:
 
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
@@ -49,11 +49,22 @@ class PipelineComponent:
                 intentions=intentions,
             )
 
-            print("generarad query ")
-            print(generated_query)
+            results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)
+
+            error_message = ""
+
+            if isinstance(results_of_generated_query, dict) and "error" in results_of_generated_query:
+                error_message = results_of_generated_query["error"]
+
+            post_processed_query = self.post_processing.post_process_generated_query(
+                db_schema=db_schema,
+
+            )
+
+
 
 
 
         except Exception as e:
             print(e)
-            return []
+            return ""

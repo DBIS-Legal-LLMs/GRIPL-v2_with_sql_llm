@@ -24,7 +24,7 @@ class SQLGenerator:
                        activity_field: str,
                        db_schema:str,
                        intentions: list[str]
-                       ):
+                       )->str:
         try:
             user_prompt = self.prompt_management.fill_prompt(
                 self.user_prompt_path,

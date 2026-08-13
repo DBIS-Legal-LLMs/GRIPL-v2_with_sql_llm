@@ -8,6 +8,7 @@ from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_generation_component.schemas import SQLGenerationAnswer
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
+from app.sql_post_processing_component.schemas import SQLPostProcessingAnswer
 from sentence_transformers import SentenceTransformer
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
@@ -40,8 +41,8 @@ sql_generator_llm = LLM(
 sql_post_processing_llm = LLM(
     model_name=POST_PROCESSING_MODEL,
     model_url="",
-    api_key=os.getenv("OPENAI_API_KEY"),
-    schema_output=None
+    api_key=os.getenv("GROQ_API_KEY"),
+    schema_output=SQLPostProcessingAnswer
 )
 
 model = SentenceTransformer('intfloat/multilingual-e5-small')

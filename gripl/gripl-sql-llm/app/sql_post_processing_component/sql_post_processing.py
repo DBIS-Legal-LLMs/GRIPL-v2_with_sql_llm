@@ -19,7 +19,7 @@ class SQLPostProcessing:
 
     def post_process_generated_query(self,
                                      db_schema: str,
-                                     question: str,
+                                     activity_field: str,
                                      generated_query: str,
                                      error_message: str,
                                      intentions: list[str],
@@ -28,7 +28,7 @@ class SQLPostProcessing:
 
             user_prompt = self.prompt_management.fill_prompt(
                 self.user_prompt_path,
-                question=question,
+                activity_field=activity_field,
                 db_schema=db_schema,
                 generated_query=generated_query,
                 error_message=error_message,
