@@ -23,7 +23,7 @@ class SQLPostProcessing:
                                      generated_query: str,
                                      error_message: str,
                                      intentions: list[str],
-                                     ):
+                                     )->str:
         try:
 
             user_prompt = self.prompt_management.fill_prompt(
@@ -43,7 +43,6 @@ class SQLPostProcessing:
                 user_prompt,
                 system_prompt,
             ).final_query
-
 
         except Exception as e:
             print(e)

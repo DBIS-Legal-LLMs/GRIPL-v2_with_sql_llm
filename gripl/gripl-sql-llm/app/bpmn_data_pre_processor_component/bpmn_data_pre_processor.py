@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import re
 
 class BPMNDataPreProcessor:
 
@@ -40,5 +41,20 @@ class BPMNDataPreProcessor:
         except Exception as e:
             print(e)
             return []
+
+    def get_sid_from_activity_field_of_bpmn_file(self,
+                                                 activity_field,
+                                                 )->str:
+        try:
+
+            match = re.search(r'id="(sid-[^"]+)"', activity_field)
+            if match:
+                return match.group(1)
+            return ""
+
+
+        except Exception as e:
+            print(e)
+            return ""
 
 
