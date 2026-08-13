@@ -53,3 +53,28 @@ class GDPRCriteria(Base):
         secondary="criterion_article_association",
         back_populates="criteria"
     )
+
+    reasons = relationship(
+        "Reason",
+        back_populates="criterion"
+    )
+
+class Reason(Base):
+    __tablename__ = "reason"
+    id = Column(Integer, primary_key=True)
+
+    criterion_id = Column(
+        Integer,
+        ForeignKey("gdpr_criteria.id"),
+        nullable=False
+    )
+
+    reason = Column(
+        Text,
+        nullable=False
+    )
+
+    criterion = relationship(
+        "GDPRCriteria",
+        back_populates="reasons"
+    )
