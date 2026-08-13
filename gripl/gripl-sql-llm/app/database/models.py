@@ -23,6 +23,25 @@ criterion_article_association = Table(
     Column("article_id", Integer, ForeignKey("gdpr_articles.id"), primary_key=True)
 )
 
+category_reason_association = Table(
+    "category_reason_association",
+    Base.metadata,
+
+    Column(
+        "category_id",
+        Integer,
+        ForeignKey("category.id"),
+        primary_key=True
+    ),
+
+    Column(
+        "reason_id",
+        Integer,
+        ForeignKey("reason.id"),
+        primary_key=True
+    )
+)
+
 class Category(Base):
     __tablename__ = "category"
 
@@ -32,6 +51,12 @@ class Category(Base):
     criteria = relationship(
         "GDPRCriteria",
         back_populates="category"
+    )
+
+    reasons = relationship(
+        "Reason",
+        secondary=category_reason_association,
+        back_populates="criteria"
     )
 
 class GDPRCriteria(Base):
@@ -54,27 +79,22 @@ class GDPRCriteria(Base):
         back_populates="criteria"
     )
 
-    reasons = relationship(
-        "Reason",
-        back_populates="criterion"
-    )
+
+
 
 class Reason(Base):
-    __tablename__ = "reason"
-    id = Column(Integer, primary_key=True)
+        __tablename__ = "reason"
 
-    criterion_id = Column(
-        Integer,
-        ForeignKey("gdpr_criteria.id"),
-        nullable=False
-    )
+        id = Column(Integer, primary_key=True)
 
-    reason = Column(
-        Text,
-        nullable=False
-    )
+        reason = Column(
+            Text,
+            nullable=False,
+            unique=True
+        )
 
-    criterion = relationship(
-        "GDPRCriteria",
-        back_populates="reasons"
-    )
+        categories = relationship(
+            "Category",
+            secondary=category_reason_association,
+            back_populates="categories"
+        )

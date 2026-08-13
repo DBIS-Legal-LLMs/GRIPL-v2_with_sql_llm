@@ -250,6 +250,157 @@ criteria_data = [
     }
 ]
 
+reason_mapping = {
+
+    "Collects personal data – gathers information about natural persons.": [
+        "Collection"
+    ],
+
+    " Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule)": [
+        "Collection"
+    ],
+
+    "Collects personal data – gathers information about natural persons (e.g., name, email).": [
+        "Collection"
+    ],
+
+    "Collects personal data – gathers information about natural persons (speech).": [
+        "Collection"
+    ],
+
+    "Collects personal health data – gathers health information about natural persons.": [
+        "Collection"
+    ],
+
+    "Collects personal health data – gathers health information about natural persons.\nStores personal data – saves information in databases, systems, or files.": [
+        "Collection",
+        "Storage"
+    ],
+
+    "Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc": [
+        "Collection"
+    ],
+
+    "Stores personal data – saves information in databases, systems, or files.": [
+        "Storage"
+    ],
+
+    " Stores personal data – saves information in databases, systems, or files.": [
+        "Storage"
+    ],
+
+    "Stores personal data – saves information in databases, systems, or files.\n    ": [
+        "Storage"
+    ],
+
+    "Stores personal data – saves information in databases, systems, or files.\nAccesses personal data – retrieves or makes data available to users or systems.": [
+        "Storage",
+        "Access"
+    ],
+
+    "Storage of personal employment related data": [
+        "Storage"
+    ],
+
+    "Stores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.": [
+        "Storage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes.": [
+        "Usage"
+    ],
+
+    "ses personal data – processes data for operational, analytical, or business purposes.": [
+        "Usage"
+    ],
+
+    "Uses personal data - processes data for operational, analytical, or business purposes.": [
+        "Usage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes\n": [
+        "Usage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or the organization has a contact person.": [
+        "Usage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or a n organization with a contact person. If the customer is a natural person or a n organization with a contact person.": [
+        "Usage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes": [
+        "Usage"
+    ],
+
+    "Uses personal data (to decide medication), Stores personal data (in medical records)": [
+        "Usage",
+        "Storage"
+    ],
+
+    "Uses personal data – processes data for operational, analytical, or business purposes.\nCollects personal health data – gathers health information about natural persons.": [
+        "Usage",
+        "Collection"
+    ],
+
+    "Transfers personal data – shares data internally, with third parties, or externally": [
+        "Transferal"
+    ],
+
+    "Transfers personal data – shares data internally, with third parties, or externally.": [
+        "Transferal"
+    ],
+
+    "ransfers personal data – shares data internally, with third parties, or externally.": [
+        "Transferal"
+    ],
+
+    "Submit personal data to another institution (court)": [
+        "Transferal"
+    ],
+
+    "Modifies personal data – updates, corrects, or changes stored data.": [
+        "Modification"
+    ],
+
+    "Modifies personal data – updates, corrects, or changes stored data.\n    ": [
+        "Modification"
+    ],
+
+    "Accesses personal data – updates, corrects, or changes stored data.\n    ": [
+        "Modification"
+    ],
+
+    "Deletes personal data – removes or anonymizes data from storage.": [
+        "Deletion"
+    ],
+
+    "Accesses personal data – retrieves or makes data available to users or systems": [
+        "Access"
+    ],
+
+    "Accesses personal data – retrieves or makes data available to users or systems.": [
+        "Access"
+    ],
+
+    "ccesses personal data – retrieves or makes data available to users or systems.": [
+        "Access"
+    ],
+
+    "Needs access to patients medical test results which include personal medical data": [
+        "Access"
+    ],
+
+    "Access customer's financial data": [
+        "Access"
+    ],
+
+    "Precise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.": [
+        "Access"
+    ]
+}
+
 connection = sqlite3.connect(DB_PATH)
 cursor = connection.cursor()
 
@@ -303,6 +454,61 @@ try:
     connection.commit()
 
     cursor.execute("PRAGMA foreign_keys = ON")
+
+    cursor.execute("SELECT id, name FROM category")
+    category_map = {row[1]: row[0] for row in cursor.fetchall()}
+
+    for reason_text, category_names_for_reason in reason_mapping.items():
+
+        if not reason_text.strip():
+            continue
+
+        cursor.execute(
+            """
+            INSERT
+            OR IGNORE INTO reason (reason)
+                VALUES (?)
+            """,
+            (reason_text,)
+        )
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM reason
+            WHERE reason = ?
+            """,
+            (reason_text,)
+        )
+
+        reason_row = cursor.fetchone()
+
+        if reason_row is None:
+            continue
+
+        reason_id = reason_row[0]
+
+        for category_name in category_names_for_reason:
+
+            category_id = category_map.get(category_name)
+
+            if category_id is None:
+                print(
+                    f"⚠️ Kategorie nicht gefunden: {category_name}"
+                )
+                continue
+
+            cursor.execute(
+                """
+                INSERT
+                OR IGNORE INTO category_reason_association
+                    (category_id, reason_id)
+                    VALUES (?, ?)
+                """,
+                (category_id, reason_id)
+            )
+
+    connection.commit()
 
 
 except Exception as e:
