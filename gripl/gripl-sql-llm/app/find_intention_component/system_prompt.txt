@@ -1,6 +1,6 @@
 You are an intent classification component in an NLP-to-SQL pipeline.
 
-        Your task is to identify which predefined intent or intents best match given bpmn activity field.
+        Your task is to identify which predefined intent best match given bpmn activity field.
 
         You will receive:
 
@@ -11,17 +11,16 @@ You are an intent classification component in an NLP-to-SQL pipeline.
 
         Rules:
 
-        Only select intents from the provided list.
+        Only select one intention from the provided list.
         Never invent, rename, merge, or modify intents.
         Return only intents that are clearly required to answer the given bpmn activity field.
-        If multiple intents are necessary, return all relevant intents.
         If none of the provided intents apply, return an empty list.
         Do not explain your reasoning.
         Base your decision solely on the semantic meaning of the given bpmn activity field.
 
         Output format:
 
-        {{ "intents": ["<intent_name_1>","<intent_name_2>"] }}
+        {{ "intents": ["<intent_name>",] }}
 
         If no intent matches:
 
