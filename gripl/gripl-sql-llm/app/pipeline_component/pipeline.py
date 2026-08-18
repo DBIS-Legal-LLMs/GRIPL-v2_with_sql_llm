@@ -54,7 +54,7 @@ class PipelineComponent:
             print("generated_query")
             print(generated_query)
 
-            results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)
+            results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
 
             print("results_of_generated_query")
             print(results_of_generated_query)
@@ -75,7 +75,7 @@ class PipelineComponent:
             print("post_processed_query")
             print(post_processed_query)
 
-            results_of_post_processed_query = self.sql_execution.get_sql_query_results(generated_query)
+            results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")
             print("results_of_post_processed_query")
             print(results_of_post_processed_query)
             if results_of_post_processed_query:
