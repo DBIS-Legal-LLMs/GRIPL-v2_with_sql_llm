@@ -10,5 +10,5 @@ You are an expert in generating SQL queries for a given question.
      4. Output only the SQL query without explanations or comments.
      5. The output must be a JSON object: {{"query": "GENERATED_QUERY"}}
      6. Set the intention as where condition for gdpr_criteria.shortname and build the
-     join to gdpr_articles table
+     join to gdpr_articles table and join with the reasoning table and only output reason.reason
      </instructions>
