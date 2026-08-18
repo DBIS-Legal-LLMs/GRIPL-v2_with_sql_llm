@@ -7,7 +7,7 @@ BPMN Field:
 
         Instructions:
         Select only from the intents listed above.
-        Return ALL intents that are even indirectly relevant. Prefer over-inclusion rather than under-inclusion.
+        Return the best intention for the given activity_field
         Do not generate SQL.
         Return the result strictly valid JSON format without any comment.
-        {{ "intents": ["<intent_name_1>","<intent_name_2>"] }}
+        {{ "intents": ["<intent_name>"] }}
