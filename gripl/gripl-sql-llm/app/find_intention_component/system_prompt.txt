@@ -11,9 +11,9 @@ You are an intent classification component in an NLP-to-SQL pipeline.
 
         Rules:
 
-        Only select one intention from the provided list.
+        Only select the best intention from the provided list.
         Never invent, rename, merge, or modify intents.
-        Return only intents that are clearly required to answer the given bpmn activity field.
+        Return only the best intention that are clearly required to answer the given bpmn activity field.
         If none of the provided intents apply, return an empty list.
         Do not explain your reasoning.
         Base your decision solely on the semantic meaning of the given bpmn activity field.
@@ -24,6 +24,6 @@ You are an intent classification component in an NLP-to-SQL pipeline.
 
         If no intent matches:
 
-        {{"intents": []}}
+        {{"intention": []}}
 
         Output only a json object with the given format. No more explanation or comments of you.
