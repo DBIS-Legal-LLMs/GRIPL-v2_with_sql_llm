@@ -17,53 +17,6 @@ USER INTENT:
 
 ---
 
-RULES:
-
-1. Use ONLY tables and columns that exist in the DATABASE SCHEMA.
-
-2. Mandatory Tables define PRIORITY, not restriction.
-
-You MUST include Mandatory Tables when relevant, but you are allowed and expected to use additional tables from the schema if required to:
-- complete joins
-- ensure semantic correctness
-- satisfy relationships
-- answer the question fully
-
-Never omit required relationship tables just because they are not listed as mandatory.
-
-3. The schema already contains:
-   - tables
-   - columns
-   - relationships
-   - semantic keyword mappings
-   You MUST use all of this as a single unified source of truth.
-
-4. Do NOT invent:
-   - tables
-   - columns
-   - relationships
-
-5. Column usage:
-   - Use only columns necessary to answer the question
-   - Prefer semantically relevant columns from the schema
-   - Avoid selecting unnecessary columns
-
-6. Joins:
-   - Use only relationships defined in the schema
-   - Do not create implicit or assumed joins
-
-7. Reasoning process (internal, do not output):
-   - Understand question intent and look at the Mandatory Tables provided.
-   - Identify relevant schema entities within those tables.
-   - Determine required joins.
-   - Generate SQL query.
-
-
-10. Always include all tables required by JOIN paths in TABLE RELATIONSHIPS.
-
-If a semantic constraint exists (e.g. actor restriction, legal applicability, conditions), you MUST traverse relationship tables even if they are not listed as mandatory.
----
-
 OUTPUT FORMAT (STRICT JSON ONLY):
 {{"query": "GENERATED_SQL"}}
 
