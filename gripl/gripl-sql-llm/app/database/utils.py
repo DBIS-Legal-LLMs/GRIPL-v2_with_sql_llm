@@ -1,31 +1,18 @@
-def get_db_schema_string():
-    return """
-        gdpr_articles(
-    id INTEGER PRIMARY KEY,
-    article_number VARCHAR(2) NOT NULL,
-    paragraph VARCHAR(2),
-    literature VARCHAR(2),
-    text TEXT NOT NULL
-)
+def get_db_schema_string() -> str:
 
-category(
-    id INTEGER PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
-)
+    return """\
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
 
-gdpr_criteria(
-    id INTEGER PRIMARY KEY,
-    category_id INTEGER NOT NULL,
-    short_name VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES category(id)
-)
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
 
-criterion_article_association(
-    criterion_id INTEGER NOT NULL,
-    article_id INTEGER NOT NULL,
-    PRIMARY KEY (criterion_id, article_id),
-    FOREIGN KEY (criterion_id) REFERENCES gdpr_criteria(id),
-    FOREIGN KEY (article_id) REFERENCES gdpr_articles(id)
-)
-    """
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+"""
