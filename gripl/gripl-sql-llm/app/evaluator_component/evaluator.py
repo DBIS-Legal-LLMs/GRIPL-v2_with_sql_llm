@@ -1,3 +1,4 @@
+import time
 from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
 
@@ -11,28 +12,47 @@ class Evaluator:
         self.data_loader = data_loader
         self.pipe_line = pipe_line
 
-    def evaluate(self)->list[dict[str, str]]:
+    def evaluate(self):
         try:
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
-            critical_elements = []
-
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
+
                 current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
+
+                predicted_critical_elements = []
+
+                gold_critical_elements = row.get("expected_values", [])
 
                 for activity in current_activities_fields:
 
                     possible_critical_element = self.pipe_line.get_sid_and_reason_if_critical(activity)
                     if possible_critical_element:
-                        critical_elements.append(possible_critical_element)
-                print("critival elments ")
-                print(critical_elements)
-                break
+                        predicted_critical_elements.append(possible_critical_element)
+                    time.sleep(60)
 
-            return critical_elements
+                self.check_equal_and_predicted_equal(
+                    predicted_critical_elements,
+                    gold_critical_elements,
+                )
+
+                time.sleep(60)
+
+
 
         except Exception as e:
             print(e)
-            return []
+
+    def check_equal_and_predicted_equal(self,
+                                        predicted_critical_elements: list,
+                                        gold_critical_elements: list
+                                        )-> bool:
+        return set(
+            (element["value"], element["reason"])
+            for element in predicted_critical_elements
+        ) == set(
+            (element["value"], element["reason"])
+            for element in gold_critical_elements
+        )

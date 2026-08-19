@@ -37,8 +37,6 @@ class PipelineComponent:
         try:
 
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
-           # print("intention")
-           # print(intentions)
 
             if not intentions:
                 return {}
@@ -51,13 +49,7 @@ class PipelineComponent:
                 intentions=intentions,
             )
 
-          #  print("generated_query")
-           # print(generated_query)
-
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
-
-          #  print("results_of_generated_query")
-           # print(results_of_generated_query)
 
             error_message = ""
 
@@ -72,12 +64,8 @@ class PipelineComponent:
                 intentions=intentions,
             )
 
-            print("post_processed_query")
-            print(post_processed_query)
-
             results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")
-            print("results_of_post_processed_query")
-            print(results_of_post_processed_query)
+
             if results_of_post_processed_query:
                 return {
                     "value": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
