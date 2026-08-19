@@ -38,14 +38,13 @@ class SQLPostProcessing:
             system_prompt = self.prompt_management.fill_prompt(
                 self.system_prompt_path,
             )
-            print("answer post process")
-            answer = self.llm.get_answer_from_llm(
+
+            return self.llm.get_answer_from_llm(
                 user_prompt,
                 system_prompt,
-            )
-            print(answer)
-            return answer.final_query
+            ).final_query
 
         except Exception as e:
+            print("e in post_processing")
             print(e)
             return ""
