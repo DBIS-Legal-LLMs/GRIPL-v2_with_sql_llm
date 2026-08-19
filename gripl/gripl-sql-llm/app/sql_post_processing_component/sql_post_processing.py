@@ -32,17 +32,19 @@ class SQLPostProcessing:
                 db_schema=db_schema,
                 generated_query=generated_query,
                 error_message=error_message,
-                intentions=intentions,
+                intent=",".join(intentions),
             )
 
             system_prompt = self.prompt_management.fill_prompt(
                 self.system_prompt_path,
             )
-
-            return self.llm.get_answer_from_llm(
+            print("answer post process")
+            answer = self.llm.get_answer_from_llm(
                 user_prompt,
                 system_prompt,
-            ).final_query
+            )
+            print(answer)
+            return answer.final_query
 
         except Exception as e:
             print(e)
