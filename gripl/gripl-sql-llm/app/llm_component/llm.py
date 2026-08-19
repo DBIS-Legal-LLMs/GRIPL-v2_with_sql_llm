@@ -4,6 +4,7 @@ from json_repair import repair_json
 from groq import Groq
 from typing import Type
 from pydantic import BaseModel
+import traceback
 
 class LLM:
 
@@ -22,25 +23,30 @@ class LLM:
                             user_prompt: str,
                             system_prompt: str,
                             ):
-        client = Groq(api_key=self.api_key)
-        response = client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "user_data_schema",
-                    "strict": True,
-                    "schema": self.schema_output.model_json_schema()
+        try:
+            client = Groq(api_key=self.api_key)
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "user_data_schema",
+                        "strict": True,
+                        "schema": self.schema_output.model_json_schema()
+                    }
                 }
-            }
-        )
+            )
 
-        raw_output = response.choices[0].message.content
-        return self.post_process_answer(raw_output)
+            raw_output = response.choices[0].message.content
+            return self.post_process_answer(raw_output)
+        except Exception as e:
+            print(traceback.format_exc())
+            return {}
+
 
     def post_process_answer(self, raw_output: str):
 

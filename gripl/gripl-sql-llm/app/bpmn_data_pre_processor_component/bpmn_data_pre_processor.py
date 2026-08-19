@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 import re
+import traceback
 
 class BPMNDataPreProcessor:
 
@@ -39,6 +40,7 @@ class BPMNDataPreProcessor:
                     activities.append(activity)
             return activities
         except Exception as e:
+            print(traceback.format_exc())
             print(e)
             return []
 

@@ -52,6 +52,7 @@ class FindIntention:
             return [r.get('name', '') for r in row ]
         except Exception as e:
             print("in intent finding")
+            print(traceback.format_exc())
             print(e)
             return []
 
