@@ -1,11 +1,14 @@
 Database schema:
 {db_schema}
 
-BPMN Activity Field: {activity_field}
+BPMN Activity Field:
+{activity_field}
 
-Generated SQL: {generated_query}
+Generated SQL:
+{generated_query}
 
-Error: {error_message or 'none'}
+Error:
+{error_message}
 
-Intentions of the question:  ",".join({intentions})
-
+Intent:
+{intent}
