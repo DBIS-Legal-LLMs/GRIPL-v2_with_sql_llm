@@ -42,6 +42,7 @@ class SQLGenerator:
                 system_prompt,
             ).query
         except Exception as e:
+            print("in sql generating ")
             print(e)
             return ""
 

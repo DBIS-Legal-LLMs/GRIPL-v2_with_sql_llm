@@ -17,6 +17,8 @@ class Evaluator:
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
+            idx = 0
+
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
 
@@ -33,12 +35,24 @@ class Evaluator:
                         predicted_critical_elements.append(possible_critical_element)
                     time.sleep(60)
 
-                self.check_equal_and_predicted_equal(
+                eval_res = self.check_equal_and_predicted_equal(
                     predicted_critical_elements,
                     gold_critical_elements,
                 )
+                print("eval res ")
+                print(eval_res)
+                print("------------")
+                print("gold queries")
+                print(gold_critical_elements)
+                print("-------------")
+                print("predicted queries")
+                print(predicted_critical_elements)
 
                 time.sleep(60)
+
+                idx += 1
+                if idx  == 5:
+                    break
 
 
 
