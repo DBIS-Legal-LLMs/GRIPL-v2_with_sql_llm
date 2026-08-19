@@ -1,6 +1,7 @@
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
 from pathlib import Path
+import traceback
 
 
 
@@ -43,6 +44,7 @@ class SQLGenerator:
             ).query
         except Exception as e:
             print("in sql generating ")
+            print(traceback.format_exc())
             print(e)
             return ""
 

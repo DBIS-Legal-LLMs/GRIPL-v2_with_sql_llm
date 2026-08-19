@@ -1,6 +1,8 @@
 from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
+import traceback
+
 
 class ChromaDatabaseClient:
     def __init__(self,
@@ -49,6 +51,7 @@ class ChromaDatabaseClient:
 
             return results["documents"][0]
         except Exception as e:
+            print(traceback.format_exc())
             print(e)
             return []
 

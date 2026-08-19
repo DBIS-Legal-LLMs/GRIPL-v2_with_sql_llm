@@ -1,6 +1,7 @@
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
 from pathlib import Path
+import traceback
 
 
 class SQLPostProcessing:
@@ -46,5 +47,6 @@ class SQLPostProcessing:
 
         except Exception as e:
             print("e in post_processing")
+            print(traceback.format_exc())
             print(e)
             return ""

@@ -1,7 +1,7 @@
 import time
 from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
-
+import traceback
 
 class Evaluator:
 
@@ -54,9 +54,9 @@ class Evaluator:
                 if idx  == 5:
                     break
 
-
-
         except Exception as e:
+            print("in eval pipeline")
+            print(traceback.format_exc())
             print(e)
 
     def check_equal_and_predicted_equal(self,
