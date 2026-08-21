@@ -60,7 +60,7 @@ class PipelineComponent:
                 activity_field=activity_field,
                 db_schema=db_schema,
                 intentions=intentions,
-                reasons_of_intention=reasons_of_intention,
+                reasons_of_intentions=reasons_of_intention,
             )
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
