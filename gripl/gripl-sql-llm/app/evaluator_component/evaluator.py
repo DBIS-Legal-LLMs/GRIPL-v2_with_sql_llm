@@ -13,7 +13,7 @@ class Evaluator:
         self.data_loader = data_loader
         self.pipe_line = pipe_line
 
-    def evaluate(self):
+    async def evaluate(self):
         try:
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
@@ -31,7 +31,7 @@ class Evaluator:
 
                 for activity in current_activities_fields:
 
-                    possible_critical_element = self.pipe_line.get_sid_and_reason_if_critical(activity)
+                    possible_critical_element = await self.pipe_line.get_sid_and_reason_if_critical(activity)
                     if possible_critical_element:
                         predicted_critical_elements.append(possible_critical_element)
                     time.sleep(60)

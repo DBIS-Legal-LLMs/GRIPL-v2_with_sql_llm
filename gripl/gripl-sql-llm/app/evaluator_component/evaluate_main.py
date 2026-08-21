@@ -9,6 +9,7 @@ from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_generation_component.schemas import SQLGenerationAnswer
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
 from app.sql_post_processing_component.schemas import SQLPostProcessingAnswer
+from app.sql_post_processing_component.post_processing_mcp_client import PostProcessingMcpClient
 from sentence_transformers import SentenceTransformer
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
@@ -17,6 +18,7 @@ from dotenv import load_dotenv
 import os
 from app.config.model_name import INTENTION_MODEL, SQL_GENERATION_MODEL, POST_PROCESSING_MODEL
 from pathlib import Path
+import asyncio
 
 load_dotenv()
 
@@ -45,6 +47,8 @@ sql_post_processing_llm = LLM(
     schema_output=SQLPostProcessingAnswer
 )
 
+post_processing_mcp_client = PostProcessingMcpClient()
+
 model = SentenceTransformer('intfloat/multilingual-e5-small')
 
 chroma_db_client = ChromaDatabaseClient(
@@ -67,6 +71,7 @@ sql_generator = SQLGenerator(
 sql_post_processing = SQLPostProcessing(
     llm=sql_post_processing_llm,
     prompt_management=prompt_management,
+    post_processing_mcp_client=post_processing_mcp_client,
 )
 
 pipeline = PipelineComponent(
@@ -91,4 +96,4 @@ evaluator = Evaluator(
     data_loader=data_loader,
 )
 
-evaluator.evaluate()
+asyncio.run(evaluator.evaluate())
