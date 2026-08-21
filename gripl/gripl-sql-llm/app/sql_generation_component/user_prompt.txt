@@ -7,3 +7,7 @@ DETECTED INTENT (exact value for category.name):
 Bpmn Activity Field
 
 {activity_field}
+
+reasons of the intention
+
+{reasons_of_intentions}

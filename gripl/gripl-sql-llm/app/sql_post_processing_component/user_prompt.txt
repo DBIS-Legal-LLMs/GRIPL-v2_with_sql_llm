@@ -12,3 +12,6 @@ Error:
 
 Intent:
 {intent}
+
+Reason of Intent:
+{reasons_of_intentions}

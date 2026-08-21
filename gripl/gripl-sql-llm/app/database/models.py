@@ -79,9 +79,6 @@ class GDPRCriteria(Base):
         back_populates="criteria"
     )
 
-
-
-
 class Reason(Base):
         __tablename__ = "reason"
 
