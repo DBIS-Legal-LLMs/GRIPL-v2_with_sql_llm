@@ -2,6 +2,7 @@ import time
 from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
 import traceback
+import json
 
 class Evaluator:
 
@@ -60,9 +61,10 @@ class Evaluator:
             print(e)
 
     def check_equal_and_predicted_equal(self,
-                                        predicted_critical_elements: list,
-                                        gold_critical_elements: list
+                                        predicted_critical_elements,
+                                        gold_critical_elements
                                         )-> bool:
+        gold_critical_elements = json.loads(gold_critical_elements)
         return set(
             (element["value"], element["reason"])
             for element in predicted_critical_elements

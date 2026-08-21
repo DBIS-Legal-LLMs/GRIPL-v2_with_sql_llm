@@ -24,14 +24,16 @@ class SQLGenerator:
     def generate_query(self,
                        activity_field: str,
                        db_schema:str,
-                       intentions: list[str]
+                       intentions: list[str],
+                       reasons_of_intentions: list[str],
                        )->str:
         try:
             user_prompt = self.prompt_management.fill_prompt(
                 self.user_prompt_path,
                 activity_field=activity_field,
                 db_schema=db_schema,
-                intent=intentions
+                intent=intentions,
+                reasons_of_intentions=reasons_of_intentions,
             )
 
             system_prompt = self.prompt_management.fill_prompt(

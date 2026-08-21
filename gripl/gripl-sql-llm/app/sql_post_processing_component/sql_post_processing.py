@@ -24,6 +24,7 @@ class SQLPostProcessing:
                                      generated_query: str,
                                      error_message: str,
                                      intentions: list[str],
+                                     reasons_of_intentions: list[str],
                                      )->str:
         try:
 
@@ -34,6 +35,7 @@ class SQLPostProcessing:
                 generated_query=generated_query,
                 error_message=error_message,
                 intent=",".join(intentions),
+                reasons_of_intentions=",".join(reasons_of_intentions),
             )
 
             system_prompt = self.prompt_management.fill_prompt(

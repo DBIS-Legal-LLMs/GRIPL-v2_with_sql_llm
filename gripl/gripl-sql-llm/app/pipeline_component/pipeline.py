@@ -41,12 +41,26 @@ class PipelineComponent:
             if not intentions:
                 return {}
 
+            intent= intentions[0]
+
+            reasons_of_intention = [execution_result.get("reason", "") for execution_result in self.sql_execution.get_sql_query_results(f"""
+                                                                            SELECT  r.reason
+                                                                            FROM reason r
+                                                                                     JOIN category_reason_association cra
+                                                                                          ON r.id = cra.reason_id
+                                                                                     JOIN category c
+                                                                                          ON c.id = cra.category_id
+                                                                            WHERE c.name = '{intent}';
+                                                                            """)]
+
+
             db_schema = get_db_schema_string()
 
             generated_query = self.sql_generation.generate_query(
                 activity_field=activity_field,
                 db_schema=db_schema,
                 intentions=intentions,
+                reasons_of_intention=reasons_of_intention,
             )
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
