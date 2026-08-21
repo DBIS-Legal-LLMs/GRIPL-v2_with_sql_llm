@@ -1,13 +1,25 @@
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import traceback
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .sql_post_processing import SQLPostProcessing
 
 class PostProcessingMcpClient:
 
     def __init__(self):
         self.max_iteration = 3
 
-    async def get_mcp_client_answer(self):
+    async def get_mcp_client_answer(self,
+                                    db_schema: str,
+                                    activity_field: str,
+                                    generated_query: str,
+                                    error_message: str,
+                                    intentions: list[str],
+                                    reasons_of_intentions: list[str],
+                                    sql_post_processing_component: "SQLPostProcessing"
+                                    ):
 
         try:
             server_params = StdioServerParameters(
@@ -35,14 +47,24 @@ class PostProcessingMcpClient:
 
                     groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
 
-                    print("groq tools")
-                    print(groq_tools)
+                    user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.user_prompt_path,
+                        activity_field=activity_field,
+                        db_schema=db_schema,
+                        generated_query=generated_query,
+                        error_message=error_message,
+                        intent=",".join(intentions),
+                        reasons_of_intentions=",".join(reasons_of_intentions),
+                    )
 
-                    return "mcp answer client"
+                    system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.system_prompt_path,
+                    )
 
-
-
-
+                    return sql_post_processing_component.llm.get_answer_from_llm(
+                        user_prompt,
+                        system_prompt,
+                    ).final_query
 
         except Exception as e:
             print("error in mcp client")

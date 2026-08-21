@@ -22,39 +22,24 @@ class SQLPostProcessing:
         self.user_prompt_path = base_dir / "user_prompt.txt"
 
     async def post_process_generated_query(self,
-                                     db_schema: str,
-                                     activity_field: str,
-                                     generated_query: str,
-                                     error_message: str,
-                                     intentions: list[str],
-                                     reasons_of_intentions: list[str],
-                                     )->str:
+                                           db_schema: str,
+                                           activity_field: str,
+                                           generated_query: str,
+                                           error_message: str,
+                                           intentions: list[str],
+                                           reasons_of_intentions: list[str],
+                                           ) -> str:
         try:
 
-            mcp_result = await self.post_processing_mcp_client.get_mcp_client_answer()
-            print("res mcp ")
-            print(mcp_result)
-
-            return ""
-
-            user_prompt = self.prompt_management.fill_prompt(
-                self.user_prompt_path,
-                activity_field=activity_field,
-                db_schema=db_schema,
-                generated_query=generated_query,
-                error_message=error_message,
-                intent=",".join(intentions),
-                reasons_of_intentions=",".join(reasons_of_intentions),
+            return await self.post_processing_mcp_client.get_mcp_client_answer(
+                db_schema,
+                activity_field,
+                generated_query,
+                error_message,
+                intentions,
+                reasons_of_intentions,
+                self
             )
-
-            system_prompt = self.prompt_management.fill_prompt(
-                self.system_prompt_path,
-            )
-
-            return self.llm.get_answer_from_llm(
-                user_prompt,
-                system_prompt,
-            ).final_query
 
         except Exception as e:
             print("e in post_processing")
