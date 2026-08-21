@@ -314,10 +314,6 @@ reason_mapping = {
         "Usage"
     ],
 
-    "Uses personal data - processes data for operational, analytical, or business purposes.": [
-        "Usage"
-    ],
-
     "Uses personal data – processes data for operational, analytical, or business purposes\n": [
         "Usage"
     ],
