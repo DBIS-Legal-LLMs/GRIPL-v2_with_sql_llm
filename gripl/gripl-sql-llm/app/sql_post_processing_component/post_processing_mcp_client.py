@@ -2,6 +2,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import traceback
 from typing import TYPE_CHECKING
+import json
 
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
@@ -73,14 +74,51 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.verification_system_prompt_path,
                     )
 
-                    messages = []
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": verification_system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": verification_user_prompt,
+                        },
+                    ]
 
-                    messages.append({
-
-                    })
+                    current_query = first_processed_query
 
                     for i in range(1, self.max_iteration + 1):
-                        pass
+
+                        response = await sql_post_processing_component.llm.get_answer_from_llm_with_tools(
+                            messages,
+                            groq_tools,
+                        )
+
+                        message = response.choices[0].message
+
+                        if message.tool_calls:
+
+                            for tool_call in message.tool_calls:
+                                tool_name = tool_call.function.name
+
+                                arguments = json.loads(
+                                    tool_call.function.arguments
+                                )
+
+                                tool_result = await session.call_tool(
+                                    tool_name,
+                                    arguments,
+                                )
+
+                                messages.append({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "content": json.dumps(tool_result),
+                                })
+
+                            continue
+
+                    return message.content
 
         except Exception as e:
             print("error in mcp client")
