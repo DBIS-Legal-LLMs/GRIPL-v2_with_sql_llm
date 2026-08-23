@@ -12,11 +12,11 @@ class MCPServer:
     def register_tools(self):
 
         @self.mcp.tool()
-        def get_all_categories() -> list[str]:
+        def get_all_intentions() -> list[str]:
             """
-            Get all categories.
+            Get all intentions.
 
-            :return: list of categories
+            :return: list of all intentions.
             """
             return [category_result.get("name", "") for category_result in self.execution_component.get_sql_query_results(
                 "SELECT name  FROM category"
@@ -24,6 +24,12 @@ class MCPServer:
 
         @self.mcp.tool()
         def get_all_reasons_of_category(category_name: str) -> list[str]:
+            """
+                        Get of one intention all possible reasons.
+
+                        :return: list of all reasons of one intention.
+                        """
+
             return [reason_result.get("reason", "") for reason_result in self.execution_component.get_sql_query_results(
                 f"""
                                                                                         SELECT  r.reason

@@ -21,6 +21,9 @@ class SQLPostProcessing:
         self.system_prompt_path = base_dir / "system_prompt.txt"
         self.user_prompt_path = base_dir / "user_prompt.txt"
 
+        self.verification_system_prompt_path = base_dir / "verification_system_prompt.txt"
+        self.verification_user_prompt_path = base_dir / "verification_user_prompt.txt"
+
     async def post_process_generated_query(self,
                                            db_schema: str,
                                            activity_field: str,

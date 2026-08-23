@@ -30,22 +30,9 @@ class PostProcessingMcpClient:
                 ],
             )
 
-            messages = []
-
-            messages.append({"role": "system", "content": ""})
-
-            messages.append(
-
-                {"role": "user", "content": ""})
-
             async with stdio_client(server_params) as (reader, writer):
                 async with ClientSession(reader, writer) as session:
                     await session.initialize()
-                    tools_result = await session.list_tools()
-
-                    mcp_tools = tools_result.tools
-
-                    groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
 
                     user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.user_prompt_path,
@@ -61,10 +48,39 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.system_prompt_path,
                     )
 
-                    return sql_post_processing_component.llm.get_answer_from_llm(
+                    first_processed_query =  sql_post_processing_component.llm.get_answer_from_llm(
                         user_prompt,
                         system_prompt,
                     ).final_query
+
+                    tools_result = await session.list_tools()
+
+                    mcp_tools = tools_result.tools
+
+                    intention = intentions[0]
+
+                    groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
+
+                    verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.verification_user_prompt_path,
+                        activity_field=activity_field,
+                        intention=intention,
+                        generated_query=first_processed_query,
+                        db_schema=db_schema,
+                    )
+
+                    verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.verification_system_prompt_path,
+                    )
+
+                    messages = []
+
+                    messages.append({
+
+                    })
+
+                    for i in range(1, self.max_iteration + 1):
+                        pass
 
         except Exception as e:
             print("error in mcp client")
