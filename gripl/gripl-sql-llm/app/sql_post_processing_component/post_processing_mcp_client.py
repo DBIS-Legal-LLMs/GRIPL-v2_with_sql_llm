@@ -87,15 +87,34 @@ class PostProcessingMcpClient:
 
                     for i in range(1, self.max_iteration + 1):
 
-                        response = await sql_post_processing_component.llm.get_answer_from_llm_with_tools(
-                            messages,
-                            groq_tools,
+                        message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                            messages=messages,
+                            tools=groq_tools,
+                            tool_choice={
+                                "type": "function",
+                                "function": {
+                                    "name": "get_all_intentions",
+                                },
+                            },
                         )
 
-                        message = response.choices[0].message
+                        messages.append({
+                            "role": "assistant",
+                            "content": message.content,
+                            "tool_calls": [
+                                {
+                                    "id": tool_call.id,
+                                    "type": "function",
+                                    "function": {
+                                        "name": tool_call.function.name,
+                                        "arguments": tool_call.function.arguments,
+                                    },
+                                }
+                                for tool_call in message.tool_calls
+                            ],
+                        })
 
                         if message.tool_calls:
-
                             for tool_call in message.tool_calls:
                                 tool_name = tool_call.function.name
 
@@ -114,9 +133,78 @@ class PostProcessingMcpClient:
                                     "content": json.dumps(tool_result),
                                 })
 
-                            continue
+                        message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                            messages=messages,
+                            tools=groq_tools,
+                            tool_choice={
+                                "type": "function",
+                                "function": {
+                                    "name": "get_all_reasons_of_category",
+                                },
+                            },
+                        )
 
-                    return message.content
+                        messages.append({
+                            "role": "assistant",
+                            "content": message.content,
+                            "tool_calls": [
+                                {
+                                    "id": tool_call.id,
+                                    "type": "function",
+                                    "function": {
+                                        "name": tool_call.function.name,
+                                        "arguments": tool_call.function.arguments,
+                                    },
+                                }
+                                for tool_call in message.tool_calls
+                            ],
+                        })
+
+                        if message.tool_calls:
+                            for tool_call in message.tool_calls:
+                                tool_name = tool_call.function.name
+
+                                arguments = json.loads(
+                                    tool_call.function.arguments
+                                )
+
+                                tool_result = await session.call_tool(
+                                    tool_name,
+                                    arguments,
+                                )
+
+                                messages.append({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "content": json.dumps(tool_result),
+                                })
+
+                        result = await sql_post_processing_component.llm.get_answer_from_llm_with_messages(
+                            messages
+                        )
+
+                        if (
+                                result.intention_status == "unchanged"
+                                and result.reason_status == "unchanged"
+                        ):
+                            return result.final_query
+
+                        messages.append({
+                            "role": "user",
+                            "content": (
+                                "The previous validation changed the intention or reason. "
+                                "Validate the corrected query again.\n\n"
+                                f"Current intention: {result.intention}\n"
+                                f"Current reason: {result.reason}\n"
+                                f"Current SQL query:\n{result.final_query}"
+                            ),
+                        })
+
+                    return await sql_post_processing_component.llm.get_answer_from_llm_with_messages(
+                            messages
+                        ).final_query
+
+
 
         except Exception as e:
             print("error in mcp client")

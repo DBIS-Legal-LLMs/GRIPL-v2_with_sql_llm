@@ -1,32 +1,13 @@
-Validate and, if necessary, correct the current SQL query.
+Validate the following SQL query.
 
 Activity field:
 {activity_field}
 
-Currently selected intention:
+Database schema:
+{db_schema}
+
+Current intention:
 {intention}
 
 Current SQL query:
 {generated_query}
-
-Database schema:
-{db_schema}
-
-Use the available tools to validate the intention and the reason represented
-in the current SQL query.
-
-First validate whether the selected intention exists and whether it
-semantically fits the activity field.
-
-Then validate whether the reason represented in the current SQL query is
-valid for the validated intention and fits the activity field.
-
-If the intention or reason is invalid, correct the SQL query using only
-valid intentions and reasons returned by the tools.
-
-If both are valid, keep the query unchanged.
-
-The final SQL query must be consistent with the activity field, database
-schema, validated intention, and validated reason.
-
-Return only the final corrected SQL query.
