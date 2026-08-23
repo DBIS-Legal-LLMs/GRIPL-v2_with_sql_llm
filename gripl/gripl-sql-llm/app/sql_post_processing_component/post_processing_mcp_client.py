@@ -85,8 +85,6 @@ class PostProcessingMcpClient:
                         },
                     ]
 
-                    current_query = first_processed_query
-
                     for i in range(1, self.max_iteration + 1):
 
                         response = await sql_post_processing_component.llm.get_answer_from_llm_with_tools(
