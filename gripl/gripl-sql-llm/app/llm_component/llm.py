@@ -47,28 +47,6 @@ class LLM:
             print(traceback.format_exc())
             return {}
 
-    async def get_answer_from_llm_with_tools(
-            self,
-            messages: list,
-            tools: list,
-    ):
-        try:
-            client = Groq(api_key=self.api_key)
-
-            response = client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    tools=tools,
-                    tool_choice="auto",
-                )
-
-            return response.choices[0].message
-
-        except Exception as e:
-            print(traceback.format_exc())
-            return {}
-
-
     def post_process_answer(self, raw_output: str):
 
         code_block_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
@@ -97,5 +75,53 @@ class LLM:
             #raise ValueError(f"Validation failed: {e}") from e
             return {}
 
-
         return validated
+
+    async def get_answer_from_llm_with_tool_call(
+            self,
+            messages: list,
+            tools: list,
+            tool_choice: dict,
+    ):
+        try:
+            client = Groq(api_key=self.api_key)
+
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+
+            return response.choices[0].message
+
+        except Exception:
+            print(traceback.format_exc())
+            return None
+
+    def get_answer_from_llm_with_messages(self,
+                                          messages: list,
+                                          ):
+
+        try:
+            client = Groq(api_key=self.api_key)
+
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "user_data_schema",
+                        "strict": True,
+                        "schema": self.schema_output.model_json_schema()
+                    }
+                }
+            )
+
+            raw_output = response.choices[0].message.content
+            return self.post_process_answer(raw_output)
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {}
