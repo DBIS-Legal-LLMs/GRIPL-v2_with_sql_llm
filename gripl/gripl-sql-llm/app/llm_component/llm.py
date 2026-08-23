@@ -47,6 +47,67 @@ class LLM:
             print(traceback.format_exc())
             return {}
 
+    async def get_answer_from_llm_with_tools(
+            self,
+            user_prompt: str,
+            system_prompt: str,
+            tools: list,
+            tool_executor,
+    ):
+        try:
+            client = Groq(api_key=self.api_key)
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ]
+
+            while True:
+
+                response = client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="auto",
+                )
+
+                message = response.choices[0].message
+
+                if not message.tool_calls:
+                    raw_output = message.content
+
+                    return self.post_process_answer(raw_output)
+
+                messages.append(message)
+
+                for tool_call in message.tool_calls:
+                    tool_name = tool_call.function.name
+
+                    arguments = json.loads(
+                        tool_call.function.arguments
+                    )
+
+                    tool_result = await tool_executor(
+                        tool_name,
+                        arguments
+                    )
+
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(tool_result),
+                    })
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {}
+
 
     def post_process_answer(self, raw_output: str):
 
