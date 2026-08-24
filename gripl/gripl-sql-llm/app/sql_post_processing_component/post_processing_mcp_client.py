@@ -96,9 +96,8 @@ class PostProcessingMcpClient:
                             intentions_list = [item.text for item in tool_result.content if item.type == 'text']
 
                         messages.append({
-                            "role": "tool",
-                            "tool_call_id": "manual_tool_call",
-                            "content": json.dumps({"intentions": intentions_list}),
+                            "role": "user",
+                            "content": f"Die verfügbaren Intentionen sind: {json.dumps(intentions_list)}"
                         })
 
                         reason_of_intention_answer = await session.call_tool(
@@ -106,15 +105,14 @@ class PostProcessingMcpClient:
                             {"category_name": intention}
                         )
 
-                        if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
-                            reasons_list = tool_result.structuredContent.get('result', [])
+                        if hasattr(reason_of_intention_answer, 'structuredContent') and reason_of_intention_answer.structuredContent:
+                            reasons_list = reason_of_intention_answer.structuredContent.get('result', [])
                         else:
-                            reasons_list = [item.text for item in tool_result.content if item.type == 'text']
+                            reasons_list = [item.text for item in reason_of_intention_answer.content if item.type == 'text']
 
                         messages.append({
-                            "role": "tool",
-                            "tool_call_id": "manual_tool_call",
-                            "content": json.dumps({"reason_of_intention": reasons_list}),
+                            "role": "user",
+                            "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reasons_list)}"
                         })
 
                         result = sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
