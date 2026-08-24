@@ -87,7 +87,7 @@ class PostProcessingMcpClient:
 
                     for i in range(1, self.max_iteration + 1):
 
-                        message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                        intention_message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
                             messages=messages,
                             tools=groq_tools,
                             tool_choice={
@@ -100,7 +100,7 @@ class PostProcessingMcpClient:
 
                         messages.append({
                             "role": "assistant",
-                            "content": message.content,
+                            "content": intention_message.content,
                             "tool_calls": [
                                 {
                                     "id": tool_call.id,
@@ -110,12 +110,12 @@ class PostProcessingMcpClient:
                                         "arguments": tool_call.function.arguments,
                                     },
                                 }
-                                for tool_call in message.tool_calls
+                                for tool_call in intention_message.tool_calls
                             ],
                         })
 
-                        if message.tool_calls:
-                            for tool_call in message.tool_calls:
+                        if intention_message.tool_calls:
+                            for tool_call in intention_message.tool_calls:
                                 tool_name = tool_call.function.name
 
                                 arguments = json.loads(
@@ -133,7 +133,7 @@ class PostProcessingMcpClient:
                                     "content": json.dumps(tool_result),
                                 })
 
-                        message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                        reason_message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
                             messages=messages,
                             tools=groq_tools,
                             tool_choice={
@@ -146,7 +146,7 @@ class PostProcessingMcpClient:
 
                         messages.append({
                             "role": "assistant",
-                            "content": message.content,
+                            "content": reason_message.content,
                             "tool_calls": [
                                 {
                                     "id": tool_call.id,
@@ -156,12 +156,12 @@ class PostProcessingMcpClient:
                                         "arguments": tool_call.function.arguments,
                                     },
                                 }
-                                for tool_call in message.tool_calls
+                                for tool_call in reason_message.tool_calls
                             ],
                         })
 
-                        if message.tool_calls:
-                            for tool_call in message.tool_calls:
+                        if reason_message.tool_calls:
+                            for tool_call in reason_message.tool_calls:
                                 tool_name = tool_call.function.name
 
                                 arguments = json.loads(
