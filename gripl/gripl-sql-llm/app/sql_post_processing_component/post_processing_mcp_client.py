@@ -87,53 +87,18 @@ class PostProcessingMcpClient:
 
                     for i in range(1, self.max_iteration + 1):
 
-                        intention_message = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_tool_call(
-                            messages=messages,
-                            tools=groq_tools,
-                            tool_choice={
-                                "type": "function",
-                                "function": {
-                                    "name": "get_all_intentions",
-                                },
-                            },
-                        )
+                        tool_result = await session.call_tool("get_all_intentions", {})
 
-                        print("intention message:", intention_message)
+                        if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
+                            intentions_list = tool_result.structuredContent.get('result', [])
+                        else:
+                            intentions_list = [item.text for item in tool_result.content if item.type == 'text']
 
                         messages.append({
-                            "role": "assistant",
-                            "content": intention_message.content,
-                            "tool_calls": [
-                                {
-                                    "id": tool_call.id,
-                                    "type": "function",
-                                    "function": {
-                                        "name": tool_call.function.name,
-                                        "arguments": tool_call.function.arguments,
-                                    },
-                                }
-                                for tool_call in intention_message.tool_calls
-                            ],
+                            "role": "tool",
+                            "tool_call_id": "manual_tool_call",
+                            "content": json.dumps({"intentions": intentions_list}),
                         })
-
-                        if intention_message.tool_calls:
-                            for tool_call in intention_message.tool_calls:
-                                tool_name = tool_call.function.name
-
-                                arguments = json.loads(
-                                    tool_call.function.arguments
-                                )
-
-                                tool_result = await session.call_tool(
-                                    tool_name,
-                                    arguments,
-                                )
-
-                                messages.append({
-                                    "role": "tool",
-                                    "tool_call_id": tool_call.id,
-                                    "content": json.dumps(tool_result),
-                                })
 
                         reason_message = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_tool_call(
                             messages=messages,
