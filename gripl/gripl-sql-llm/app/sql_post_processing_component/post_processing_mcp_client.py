@@ -7,6 +7,7 @@ import json
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
 
+
 class PostProcessingMcpClient:
 
     def __init__(self):
@@ -49,7 +50,7 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.system_prompt_path,
                     )
 
-                    first_processed_query =  sql_post_processing_component.llm.get_answer_from_llm(
+                    first_processed_query = sql_post_processing_component.llm.get_answer_from_llm(
                         user_prompt,
                         system_prompt,
                     ).final_query
@@ -100,53 +101,21 @@ class PostProcessingMcpClient:
                             "content": json.dumps({"intentions": intentions_list}),
                         })
 
-                        reason_message = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_tool_call(
-                            messages=messages,
-                            tools=groq_tools,
-                            tool_choice={
-                                "type": "function",
-                                "function": {
-                                    "name": "get_all_reasons_of_category",
-                                },
-                            },
+                        reason_of_intention_answer = await session.call_tool(
+                            "get_all_reasons_of_category",
+                            {"category_name": intention}
                         )
 
-                        print("reason message:", reason_message)
+                        if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
+                            reasons_list = tool_result.structuredContent.get('result', [])
+                        else:
+                            reasons_list = [item.text for item in tool_result.content if item.type == 'text']
 
                         messages.append({
-                            "role": "assistant",
-                            "content": reason_message.content,
-                            "tool_calls": [
-                                {
-                                    "id": tool_call.id,
-                                    "type": "function",
-                                    "function": {
-                                        "name": tool_call.function.name,
-                                        "arguments": tool_call.function.arguments,
-                                    },
-                                }
-                                for tool_call in reason_message.tool_calls
-                            ],
+                            "role": "tool",
+                            "tool_call_id": "manual_tool_call",
+                            "content": json.dumps({"reason_of_intention": intentions_list}),
                         })
-
-                        if reason_message.tool_calls:
-                            for tool_call in reason_message.tool_calls:
-                                tool_name = tool_call.function.name
-
-                                arguments = json.loads(
-                                    tool_call.function.arguments
-                                )
-
-                                tool_result = await session.call_tool(
-                                    tool_name,
-                                    arguments,
-                                )
-
-                                messages.append({
-                                    "role": "tool",
-                                    "tool_call_id": tool_call.id,
-                                    "content": json.dumps(tool_result),
-                                })
 
                         result = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
                             messages
@@ -160,6 +129,8 @@ class PostProcessingMcpClient:
                         ):
                             return result.final_query
 
+                        intention = result.intention
+
                         messages.append({
                             "role": "user",
                             "content": (
@@ -172,8 +143,8 @@ class PostProcessingMcpClient:
                         })
 
                     return await sql_post_processing_component.llm.get_answer_from_llm_with_messages(
-                            messages
-                        ).final_query
+                        messages
+                    ).final_query
 
 
 
