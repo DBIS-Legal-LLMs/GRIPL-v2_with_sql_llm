@@ -117,7 +117,7 @@ class PostProcessingMcpClient:
                             "content": json.dumps({"reason_of_intention": reasons_list}),
                         })
 
-                        result = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
+                        result = sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
                             messages
                         )
 
