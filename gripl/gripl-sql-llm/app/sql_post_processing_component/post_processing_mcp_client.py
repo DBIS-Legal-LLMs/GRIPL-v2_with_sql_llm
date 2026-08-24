@@ -119,8 +119,6 @@ class PostProcessingMcpClient:
                             messages
                         )
 
-                        print("result message:", result)
-
                         if (
                                 result.intention_status == "unchanged"
                                 and result.reason_status == "unchanged"
