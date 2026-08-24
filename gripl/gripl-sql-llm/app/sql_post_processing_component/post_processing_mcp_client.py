@@ -87,7 +87,7 @@ class PostProcessingMcpClient:
 
                     for i in range(1, self.max_iteration + 1):
 
-                        intention_message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                        intention_message = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_tool_call(
                             messages=messages,
                             tools=groq_tools,
                             tool_choice={
@@ -97,6 +97,8 @@ class PostProcessingMcpClient:
                                 },
                             },
                         )
+
+                        print("intention message:", intention_message)
 
                         messages.append({
                             "role": "assistant",
@@ -133,7 +135,7 @@ class PostProcessingMcpClient:
                                     "content": json.dumps(tool_result),
                                 })
 
-                        reason_message = await sql_post_processing_component.llm.get_answer_from_llm_with_tool_call(
+                        reason_message = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_tool_call(
                             messages=messages,
                             tools=groq_tools,
                             tool_choice={
@@ -143,6 +145,8 @@ class PostProcessingMcpClient:
                                 },
                             },
                         )
+
+                        print("reason message:", reason_message)
 
                         messages.append({
                             "role": "assistant",
@@ -179,9 +183,11 @@ class PostProcessingMcpClient:
                                     "content": json.dumps(tool_result),
                                 })
 
-                        result = await sql_post_processing_component.llm.get_answer_from_llm_with_messages(
+                        result = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
                             messages
                         )
+
+                        print("result message:", result)
 
                         if (
                                 result.intention_status == "unchanged"

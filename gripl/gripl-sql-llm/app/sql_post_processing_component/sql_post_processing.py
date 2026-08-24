@@ -9,10 +9,12 @@ class SQLPostProcessing:
 
     def __init__(self,
                  llm: LLM,
+                 verification_llm: LLM,
                  prompt_management: PromptManagement,
                  post_processing_mcp_client: PostProcessingMcpClient
                  ):
         self.llm = llm
+        self.verification_llm = verification_llm
         self.prompt_management = prompt_management
         self.post_processing_mcp_client = post_processing_mcp_client
 
