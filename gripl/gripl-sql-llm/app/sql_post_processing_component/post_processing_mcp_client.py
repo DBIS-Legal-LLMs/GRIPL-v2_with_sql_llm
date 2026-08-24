@@ -114,7 +114,7 @@ class PostProcessingMcpClient:
                         messages.append({
                             "role": "tool",
                             "tool_call_id": "manual_tool_call",
-                            "content": json.dumps({"reason_of_intention": intentions_list}),
+                            "content": json.dumps({"reason_of_intention": reasons_list}),
                         })
 
                         result = await sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
@@ -142,7 +142,7 @@ class PostProcessingMcpClient:
                             ),
                         })
 
-                    return await sql_post_processing_component.llm.get_answer_from_llm_with_messages(
+                    return sql_post_processing_component.llm.get_answer_from_llm_with_messages(
                         messages
                     ).final_query
 

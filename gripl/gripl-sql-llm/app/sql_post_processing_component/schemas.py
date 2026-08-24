@@ -7,6 +7,7 @@ class SQLPostProcessingAnswer(BaseModel):
     final_query: str
 
 class SQLVerificationResultAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     intention_status: Literal["unchanged", "changed"]
     reason_status: Literal["unchanged", "changed"]
 
