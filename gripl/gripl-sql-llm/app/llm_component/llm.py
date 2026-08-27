@@ -32,14 +32,12 @@ class LLM:
                 "messages": messages,
             }
 
-            # Tools nur hinzufügen, wenn benötigt
             if tools is not None:
                 kwargs["tools"] = tools
 
             if tool_choice is not None:
                 kwargs["tool_choice"] = tool_choice
 
-            # JSON-Schema nur verwenden, wenn keine Tool-Calls gemacht werden
             if tools is None:
                 kwargs["response_format"] = {
                     "type": "json_schema",
@@ -52,7 +50,12 @@ class LLM:
 
             response = client.chat.completions.create(**kwargs)
 
-            return response.choices[0].message
+            raw_response =  response.choices[0].message
+
+            if not raw_response.tool_calls:
+                return self.post_process_answer(raw_response.content)
+
+            return raw_response
 
         except Exception as e:
             print(traceback.format_exc())
@@ -87,30 +90,3 @@ class LLM:
             return {}
 
         return validated
-
-    def get_answer_from_llm_with_messages(self,
-                                          messages: list,
-                                          ):
-
-        try:
-            client = Groq(api_key=self.api_key)
-
-            response = client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "user_data_schema",
-                        "strict": True,
-                        "schema": self.schema_output.model_json_schema()
-                    }
-                }
-            )
-
-            raw_output = response.choices[0].message.content
-            return self.post_process_answer(raw_output)
-
-        except Exception as e:
-            print(traceback.format_exc())
-            return {}

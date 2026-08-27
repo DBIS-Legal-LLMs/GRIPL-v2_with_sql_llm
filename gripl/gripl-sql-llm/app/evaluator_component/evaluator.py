@@ -3,6 +3,7 @@ from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
 import traceback
 import json
+import os
 
 class Evaluator:
 
@@ -15,6 +16,8 @@ class Evaluator:
 
     async def evaluate(self):
         try:
+
+
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
