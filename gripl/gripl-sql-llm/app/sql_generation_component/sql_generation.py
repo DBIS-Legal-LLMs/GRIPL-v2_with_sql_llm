@@ -1,4 +1,5 @@
 from app.llm_component.llm import LLM
+from app.logging_component.logger import Logger
 from app.prompt_management_component.prompt_management import PromptManagement
 from pathlib import Path
 import traceback
@@ -11,9 +12,11 @@ class SQLGenerator:
     def __init__(self,
                  llm: LLM,
                  prompt_management: PromptManagement,
+                 logging_component: Logger,
                  ):
         self.llm = llm
         self.prompt_management = prompt_management
+        self.logging_component = logging_component
 
         base_dir = Path(__file__).parent
 
@@ -51,9 +54,17 @@ class SQLGenerator:
                 },
             ]
 
-            return self.llm.get_answer_from_llm(
+            answer = self.llm.get_answer_from_llm(
                 messages
             ).query
+
+            self.logging_component.log(
+                user_prompt,
+                system_prompt,
+                answer,
+            )
+
+            return answer
         except Exception as e:
             print("in sql generating ")
             print(traceback.format_exc())

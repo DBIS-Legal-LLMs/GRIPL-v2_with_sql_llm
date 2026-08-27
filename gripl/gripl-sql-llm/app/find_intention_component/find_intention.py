@@ -1,3 +1,4 @@
+from app.logging_component.logger import Logger
 from app.llm_component.llm import LLM
 from app.prompt_management_component.prompt_management import PromptManagement
 from app.sql_execution_component.sql_execution import SQLExecution
@@ -9,11 +10,13 @@ class FindIntention:
     def __init__(self,
                  llm: LLM,
                  prompt_management: PromptManagement,
-                 sql_execution: SQLExecution
+                 sql_execution: SQLExecution,
+                 logging_component: Logger,
                  ):
         self.llm = llm
         self.prompt_management = prompt_management
         self.sql_execution = sql_execution
+        self.logging_component = logging_component
 
         base_dir = Path(__file__).parent
 
@@ -46,9 +49,17 @@ class FindIntention:
                 },
             ]
 
-            return self.llm.get_answer_from_llm(
+            answer = self.llm.get_answer_from_llm(
                 messages,
             ).intents
+
+            self.logging_component.log(
+                user_prompt,
+                system_prompt,
+                answer,
+            )
+
+            return answer
 
         except Exception as e:
             print(traceback.format_exc())

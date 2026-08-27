@@ -65,6 +65,14 @@ class PostProcessingMcpClient:
                         messages
                     ).final_query
 
+                    sql_post_processing_component.logging_component.log(
+                        user_prompt,
+                        system_prompt,
+                        first_processed_query,
+                    )
+
+
+
                     tools_result = await session.list_tools()
 
                     mcp_tools = tools_result.tools
@@ -95,6 +103,7 @@ class PostProcessingMcpClient:
                             "content": verification_user_prompt,
                         },
                     ]
+
 
                     for i in range(1, self.max_iteration + 1):
 
@@ -127,6 +136,12 @@ class PostProcessingMcpClient:
 
                         result = sql_post_processing_component.verification_llm.get_answer_from_llm(
                             messages
+                        )
+
+                        sql_post_processing_component.logging_component.log(
+                            str(messages),
+                            verification_system_prompt,
+                            result,
                         )
 
                         if (

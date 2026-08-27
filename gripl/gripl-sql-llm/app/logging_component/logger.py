@@ -5,18 +5,18 @@ import csv
 
 class Logger:
 
-    def __init__(self,):
+    def __init__(self, file_name: str):
         self.log_directory = Path(__file__).parent
+        self.file_name = file_name
 
     def log(self,
             user_prompt: str,
             system_prompt: str,
             answer,
-            file_name: str
             ):
 
         try:
-            file_path = self.log_directory / file_name
+            file_path = self.log_directory / self.file_name
 
             file_exists = file_path.exists()
 
