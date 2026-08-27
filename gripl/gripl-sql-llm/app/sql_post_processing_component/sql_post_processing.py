@@ -1,4 +1,5 @@
 from app.llm_component.llm import LLM
+from app.logging_component.logger import Logger
 from app.prompt_management_component.prompt_management import PromptManagement
 from .post_processing_mcp_client import PostProcessingMcpClient
 from pathlib import Path
@@ -11,12 +12,14 @@ class SQLPostProcessing:
                  llm: LLM,
                  verification_llm: LLM,
                  prompt_management: PromptManagement,
-                 post_processing_mcp_client: PostProcessingMcpClient
+                 post_processing_mcp_client: PostProcessingMcpClient,
+                 logging_component: Logger,
                  ):
         self.llm = llm
         self.verification_llm = verification_llm
         self.prompt_management = prompt_management
         self.post_processing_mcp_client = post_processing_mcp_client
+        self.logging_component = logging_component
 
         base_dir = Path(__file__).parent
 
