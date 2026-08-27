@@ -40,9 +40,19 @@ class SQLGenerator:
                 self.system_prompt_path,
             )
 
+            messages = [
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                },
+            ]
+
             return self.llm.get_answer_from_llm(
-                user_prompt,
-                system_prompt,
+                messages
             ).query
         except Exception as e:
             print("in sql generating ")
