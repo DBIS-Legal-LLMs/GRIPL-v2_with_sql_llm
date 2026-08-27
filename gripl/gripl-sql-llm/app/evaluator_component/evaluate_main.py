@@ -1,3 +1,4 @@
+from app.logging_component.logger import Logger
 from .evaluator import Evaluator
 from app.pipeline_component.pipeline import PipelineComponent
 from app.data_loader_component.data_loader import DataLoader
@@ -64,15 +65,29 @@ chroma_db_client = ChromaDatabaseClient(
 
 sql_execution = SQLExecution()
 
+intention_logger = Logger(
+    file_name="intention"
+)
+
+sql_generation_logger = Logger(
+    file_name="sql_generation"
+)
+
+post_processed_logger = Logger(
+    file_name="post_processing"
+)
+
 intention_component = FindIntention(
     llm=intention_llm,
     prompt_management=prompt_management,
-    sql_execution=sql_execution
+    sql_execution=sql_execution,
+    logging_component=intention_logger,
 )
 
 sql_generator = SQLGenerator(
     llm=sql_generator_llm,
     prompt_management=prompt_management,
+    logging_component=sql_generation_logger,
 )
 
 sql_post_processing = SQLPostProcessing(
@@ -80,6 +95,7 @@ sql_post_processing = SQLPostProcessing(
     verification_llm=verification_llm,
     prompt_management=prompt_management,
     post_processing_mcp_client=post_processing_mcp_client,
+    logging_component=post_processed_logger
 )
 
 pipeline = PipelineComponent(
