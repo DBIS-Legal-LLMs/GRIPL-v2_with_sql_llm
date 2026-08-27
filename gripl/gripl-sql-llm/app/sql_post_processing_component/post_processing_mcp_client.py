@@ -151,9 +151,7 @@ class PostProcessingMcpClient:
                     return sql_post_processing_component.llm.get_answer_from_llm(
                         messages
                     ).final_query
-
-
-
+                
         except Exception as e:
             print("error in mcp client")
             print(traceback.format_exc())
