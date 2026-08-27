@@ -66,15 +66,15 @@ chroma_db_client = ChromaDatabaseClient(
 sql_execution = SQLExecution()
 
 intention_logger = Logger(
-    file_name="intention"
+    file_name="intention.csv"
 )
 
 sql_generation_logger = Logger(
-    file_name="sql_generation"
+    file_name="sql_generation.csv"
 )
 
 post_processed_logger = Logger(
-    file_name="post_processing"
+    file_name="post_processing.csv"
 )
 
 intention_component = FindIntention(
