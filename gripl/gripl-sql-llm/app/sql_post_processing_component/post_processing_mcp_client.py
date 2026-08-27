@@ -50,9 +50,19 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.system_prompt_path,
                     )
 
+                    messages = [
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt,
+                        },
+                    ]
+
                     first_processed_query = sql_post_processing_component.llm.get_answer_from_llm(
-                        user_prompt,
-                        system_prompt,
+                        messages
                     ).final_query
 
                     tools_result = await session.list_tools()
@@ -115,7 +125,7 @@ class PostProcessingMcpClient:
                             "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reasons_list)}"
                         })
 
-                        result = sql_post_processing_component.verification_llm.get_answer_from_llm_with_messages(
+                        result = sql_post_processing_component.verification_llm.get_answer_from_llm(
                             messages
                         )
 
@@ -138,7 +148,7 @@ class PostProcessingMcpClient:
                             ),
                         })
 
-                    return sql_post_processing_component.llm.get_answer_from_llm_with_messages(
+                    return sql_post_processing_component.llm.get_answer_from_llm(
                         messages
                     ).final_query
 
