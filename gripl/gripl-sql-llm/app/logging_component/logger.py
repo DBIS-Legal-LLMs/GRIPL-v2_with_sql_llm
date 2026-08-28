@@ -45,3 +45,35 @@ class Logger:
         except Exception as e:
             print("error in logging ")
             print(traceback.format_exc())
+
+    def log_results(self, gold_results, predicted_results):
+        try:
+            file_path = self.log_directory / self.file_name
+
+            file_exists = file_path.exists()
+
+            with open(
+                    file_path,
+                    mode="a",
+                    newline="",
+                    encoding="utf-8"
+            ) as csv_file:
+
+                writer = csv.writer(csv_file)
+
+                if not file_exists:
+                    writer.writerow([
+                        "gold_results",
+                        "predicted_results",
+                    ])
+
+                writer.writerow([
+                    gold_results,
+                    predicted_results,
+                ])
+
+        except Exception as e:
+            print("error in logging ")
+            print(traceback.format_exc())
+
+
