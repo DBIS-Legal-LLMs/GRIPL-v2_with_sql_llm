@@ -131,7 +131,7 @@ class PostProcessingMcpClient:
 
                         query = self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field)
 
-                        reranked_reasons = self.re_ranker_model.get_reranked_reasons(
+                        reranked_reasons = self.re_ranker_model.get_reranked_results(
                             query=query,
                             reasons_of_intentions=reasons_list,
                         )
