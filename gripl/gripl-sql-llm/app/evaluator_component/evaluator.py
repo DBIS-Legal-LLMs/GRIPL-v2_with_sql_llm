@@ -1,6 +1,7 @@
 import time
 from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
+from app.logging_component.logger import Logger
 import traceback
 import json
 from pathlib import Path
@@ -9,10 +10,12 @@ class Evaluator:
 
     def __init__(self,
                  data_loader: DataLoader,
-                 pipe_line: PipelineComponent
+                 pipe_line: PipelineComponent,
+                 logger: Logger,
                  ):
         self.data_loader = data_loader
         self.pipe_line = pipe_line
+        self.logger = logger
 
     async def evaluate(self):
         try:
@@ -39,18 +42,10 @@ class Evaluator:
                         predicted_critical_elements.append(possible_critical_element)
                     time.sleep(60)
 
-                eval_res = self.check_equal_and_predicted_equal(
-                    predicted_critical_elements,
-                    gold_critical_elements,
+                self.logger.log_results(
+                    gold_results=gold_critical_elements,
+                    predicted_results=predicted_critical_elements,
                 )
-                print("eval res ")
-                print(eval_res)
-                print("------------")
-                print("gold queries")
-                print(gold_critical_elements)
-                print("-------------")
-                print("predicted queries")
-                print(predicted_critical_elements)
 
                 time.sleep(60)
 
