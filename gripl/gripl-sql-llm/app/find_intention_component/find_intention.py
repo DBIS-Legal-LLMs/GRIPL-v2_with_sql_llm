@@ -34,8 +34,6 @@ class FindIntention:
                 available_intents=available_intents,
             )
 
-            print("user_prompt intent", user_prompt)
-
             system_prompt = self.prompt_management.fill_prompt(
                 self.system_prompt_path,
             )
