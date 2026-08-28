@@ -77,6 +77,10 @@ post_processed_logger = Logger(
     file_name="post_processing.csv"
 )
 
+result_logger = Logger(
+    file_name="result.csv"
+)
+
 intention_component = FindIntention(
     llm=intention_llm,
     prompt_management=prompt_management,
@@ -118,6 +122,7 @@ data_loader = DataLoader(
 evaluator = Evaluator(
     pipe_line=pipeline,
     data_loader=data_loader,
+    logger=result_logger
 )
 
 asyncio.run(evaluator.evaluate())
