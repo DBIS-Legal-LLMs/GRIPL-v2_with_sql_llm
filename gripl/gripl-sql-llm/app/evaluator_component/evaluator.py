@@ -81,7 +81,9 @@ class Evaluator:
 
         post_processing_csv = project_root / "app" / "logging_component" / "post_processing.csv"
 
-        logging_files = [intention_csv, sql_generation_csv, post_processing_csv]
+        result_csv = project_root / "app" / "logging_component" / "result.csv"
+
+        logging_files = [intention_csv, sql_generation_csv, post_processing_csv, result_csv]
 
         for file in logging_files:
             if file.exists():
