@@ -1,5 +1,6 @@
 from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
 from app.find_intention_component.find_intention import FindIntention
+from app.reranker_component.reranker import Reranker
 from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
@@ -11,6 +12,7 @@ class PipelineComponent:
     def __init__(self,
             chroma_db_client: ChromaDatabaseClient,
             find_intention: FindIntention,
+            reranker: Reranker,
             sql_execution: SQLExecution,
             sql_generation: SQLGenerator,
             post_processing: SQLPostProcessing,
@@ -18,6 +20,7 @@ class PipelineComponent:
                  ):
         self.chroma_db_client = chroma_db_client
         self.find_intention = find_intention
+        self.reranker = reranker
         self.sql_execution = sql_execution
         self.sql_generation = sql_generation
         self.post_processing = post_processing
@@ -54,13 +57,17 @@ class PipelineComponent:
                                                                             WHERE c.name = '{intent}';
                                                                             """)]
 
+            query = self.bpmn_data_pre_processor.get_name_from_activity_field_of_bpmn_file(activity_field)
+
+            reranked_reasons = self.reranker.get_reranked_reasons(query, reasons_of_intention)
+
             db_schema = get_db_schema_string()
 
             generated_query = self.sql_generation.generate_query(
                 activity_field=activity_field,
                 db_schema=db_schema,
                 intentions=intentions,
-                reasons_of_intentions=reasons_of_intention,
+                reasons_of_intentions=reranked_reasons,
             )
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
@@ -76,7 +83,7 @@ class PipelineComponent:
                 generated_query=generated_query,
                 error_message=error_message,
                 intentions=intentions,
-                reasons_of_intentions=reasons_of_intention,
+                reasons_of_intentions=reranked_reasons,
             )
 
             results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")

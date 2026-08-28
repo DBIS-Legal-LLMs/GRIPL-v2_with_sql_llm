@@ -59,4 +59,20 @@ class BPMNDataPreProcessor:
             print(e)
             return ""
 
+    def get_name_from_activity_field_of_bpmn_file(
+            self,
+            activity_field,
+    ) -> str:
+        try:
+            match = re.search(r'name="([^"]*)"', activity_field)
+
+            if match:
+                return match.group(1)
+
+            return ""
+
+        except Exception as e:
+            print(e)
+            return ""
+
 
