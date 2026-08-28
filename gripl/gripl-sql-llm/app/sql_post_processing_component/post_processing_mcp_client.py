@@ -1,9 +1,10 @@
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import traceback
+from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
+from app.reranker_component.reranker import Reranker
 from typing import TYPE_CHECKING
 import json
-
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
 
@@ -12,6 +13,8 @@ class PostProcessingMcpClient:
 
     def __init__(self):
         self.max_iteration = 3
+        self.bpmn_data_pre_processor = BPMNDataPreProcessor()
+        self.re_ranker_model = Reranker("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
 
     async def get_mcp_client_answer(self,
                                     db_schema: str,
@@ -71,8 +74,6 @@ class PostProcessingMcpClient:
                         first_processed_query,
                     )
 
-
-
                     tools_result = await session.list_tools()
 
                     mcp_tools = tools_result.tools
@@ -104,7 +105,6 @@ class PostProcessingMcpClient:
                         },
                     ]
 
-
                     for i in range(1, self.max_iteration + 1):
 
                         tool_result = await session.call_tool("get_all_intentions", {})
@@ -129,9 +129,16 @@ class PostProcessingMcpClient:
                         else:
                             reasons_list = [item.text for item in reason_of_intention_answer.content if item.type == 'text']
 
+                        query = self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field)
+
+                        reranked_reasons = self.re_ranker_model.get_reranked_reasons(
+                            query=query,
+                            reasons_of_intentions=reasons_list,
+                        )
+
                         messages.append({
                             "role": "user",
-                            "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reasons_list)}"
+                            "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reranked_reasons)}"
                         })
 
                         result = sql_post_processing_component.verification_llm.get_answer_from_llm(
