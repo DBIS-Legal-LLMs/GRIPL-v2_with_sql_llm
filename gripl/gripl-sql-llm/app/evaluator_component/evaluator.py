@@ -3,7 +3,7 @@ from app.data_loader_component.data_loader import DataLoader
 from app.pipeline_component.pipeline import PipelineComponent
 import traceback
 import json
-import os
+from pathlib import Path
 
 class Evaluator:
 
@@ -17,7 +17,7 @@ class Evaluator:
     async def evaluate(self):
         try:
 
-
+            self.delete_result_file_if_exists()
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
@@ -75,3 +75,19 @@ class Evaluator:
             (element["value"], element["reason"])
             for element in gold_critical_elements
         )
+
+    def delete_result_file_if_exists(self,):
+
+        project_root = Path(__file__).resolve().parent.parent.parent
+
+        intention_csv = project_root / "app" / "logging_component" / "intention.csv"
+
+        sql_generation_csv = project_root / "app" / "logging_component" / "sql_generation.csv"
+
+        post_processing_csv = project_root / "app" / "logging_component" / "post_processing.csv"
+
+        logging_files = [intention_csv, sql_generation_csv, post_processing_csv]
+
+        for file in logging_files:
+            if file.exists():
+                file.unlink()
