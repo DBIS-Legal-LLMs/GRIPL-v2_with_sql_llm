@@ -59,7 +59,7 @@ class PipelineComponent:
 
             query = self.bpmn_data_pre_processor.get_name_from_activity_field_of_bpmn_file(activity_field)
 
-            reranked_reasons = self.reranker.get_reranked_reasons(query, reasons_of_intention)
+            reranked_reasons = self.reranker.get_reranked_results(query, reasons_of_intention)
 
             db_schema = get_db_schema_string()
 
