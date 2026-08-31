@@ -133,7 +133,7 @@ class PostProcessingMcpClient:
 
                         reranked_reasons = self.re_ranker_model.get_reranked_results(
                             query=query,
-                            reasons_of_intentions=reasons_list,
+                            documents=reasons_list,
                         )
 
                         messages.append({
