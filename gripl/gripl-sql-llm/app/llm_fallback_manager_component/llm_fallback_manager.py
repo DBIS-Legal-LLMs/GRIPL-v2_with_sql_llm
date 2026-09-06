@@ -61,7 +61,7 @@ class LLMFallBackManager:
 
         try:
 
-            return [(execution_result.get("reason", ""), execution_result.get("reason", "")) for execution_result in
+            return [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
                     self.sql_execution_component.get_sql_query_results(f"""
                                                                             SELECT
                                                                             name,
