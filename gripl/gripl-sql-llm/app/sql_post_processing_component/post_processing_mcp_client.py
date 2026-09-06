@@ -4,7 +4,6 @@ import traceback
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
 from app.reranker_component.reranker import Reranker
 from typing import TYPE_CHECKING
-import os
 import json
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
