@@ -18,3 +18,4 @@ numpy==1.26.4
 transformers==4.46.3
 pandas==2.2.3
 mcp==1.27.2
+instructor==1.16.0
