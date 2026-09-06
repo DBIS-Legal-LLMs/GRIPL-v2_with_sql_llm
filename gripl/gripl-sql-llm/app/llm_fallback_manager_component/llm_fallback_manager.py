@@ -6,6 +6,14 @@ from app.sql_execution_component.sql_execution import SQLExecution
 from app.llm_component.llm import LLM
 from dotenv import load_dotenv
 import os
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+from instructor.core.exceptions import InstructorRetryException
+from app.config.retry_configuration import MAX_RETRIES
 
 load_dotenv()
 
@@ -31,12 +39,18 @@ class LLMFallBackManager:
             all_models, env_api_key_name = self.get_all_possible_llm_models_of_component(self.llm_component_name)
 
             for model, env_api_key_name in all_models:
-                self.get_answer_from_current_llm(
-                    messages=messages,
-                    tools=tools,
-                    model_name=model,
-                    api_key_env_name=env_api_key_name,
-                )
+                try:
+                    return self.get_answer_from_current_llm(
+                        messages=messages,
+                        tools=tools,
+                        model_name=model,
+                        api_key_env_name=env_api_key_name,
+                    )
+
+                except InstructorRetryException:
+                    print(f"Model {model} failed after all retries. Trying next model...")
+                    continue
+                    
 
             return {}
 
@@ -61,6 +75,12 @@ class LLMFallBackManager:
             print(traceback.format_exc())
             return []
 
+    @retry(
+        retry=retry_if_exception_type(InstructorRetryException),
+        stop=stop_after_attempt(MAX_RETRIES),
+        wait=wait_exponential(min=2, max=5),
+        reraise=True,
+    )
     def get_answer_from_current_llm(self,
                                     messages: list,
                                     model_name: str,
