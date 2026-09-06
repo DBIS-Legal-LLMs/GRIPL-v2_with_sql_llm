@@ -29,7 +29,6 @@ class LLM:
             if not tools:
                 return self.get_structured_answer(messages)
 
-            print("nach if keine tools")
             client = instructor.from_provider(
                 model=self.model_name,
                 api_key=self.api_key,
