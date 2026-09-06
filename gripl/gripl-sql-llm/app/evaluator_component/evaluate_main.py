@@ -28,22 +28,22 @@ prompt_management = PromptManagement()
 bpmn_data_pre_processor = BPMNDataPreProcessor()
 
 intention_llm_handler = LLMFallBackManager(
-    llm_component=INTENTION_MODEL,
+    llm_component_name=INTENTION_MODEL,
     schema_output=IntentionAnswer,
 )
 
 sql_generation_llm_handler = LLMFallBackManager(
-    llm_component=SQL_GENERATION_MODEL,
+    llm_component_name=SQL_GENERATION_MODEL,
     schema_output=SQLGenerationAnswer,
 )
 
 post_processing_llm_handler = LLMFallBackManager(
-    llm_component=POST_PROCESSING_MODEL,
+    llm_component_name=POST_PROCESSING_MODEL,
     schema_output=SQLPostProcessingAnswer,
 )
 
 verification_llm_handler = LLMFallBackManager(
-    llm_component=VERIFICATION_MODEL,
+    llm_component_name=VERIFICATION_MODEL,
     schema_output=SQLVerificationResultAnswer,
 )
 
