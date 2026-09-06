@@ -50,7 +50,7 @@ class LLMFallBackManager:
                 except InstructorRetryException:
                     print(f"Model {model} failed after all retries. Trying next model...")
                     continue
-                    
+
 
             return {}
 
@@ -96,7 +96,7 @@ class LLMFallBackManager:
                 schema_output=self.schema_output
             )
 
-            llm.get_answer_from_llm(
+            return llm.get_answer_from_llm(
                 messages=messages,
                 tools=tools,
             )
