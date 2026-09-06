@@ -25,7 +25,7 @@ class LLM:
                             tools: list | None = None,
                             ):
         try:
-
+            print("in get answer method from llm")
             if not tools:
                 return self.get_structured_answer(messages)
 
@@ -47,18 +47,22 @@ class LLM:
             message = response.choices[0].message
 
             if message.tool_calls:
+                print("in get answer method from llm return no tool")
                 return self.get_tool_use_answer(messages)
 
             messages.append({
                 "role": "assistant",
                 "content": message.content,
             })
+            print("in get answer method from llm return no tool")
             return self.get_structured_answer(
                 messages,
             )
 
-        except Exception:
-
+        except Exception as e:
+            if getattr(e, "status_code", None) == 429:
+                print("429 error")
+            print("in execpt nach 429")
             print(traceback.format_exc())
             return {}
 

@@ -95,3 +95,11 @@ class Reason(Base):
             secondary=category_reason_association,
             back_populates="categories"
         )
+
+class FallbackLLMModel(Base):
+        __tablename__ = "fallback_llm"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(255), nullable=False)
+        order = Column(Integer, nullable=False)
+        model_url = Column(Text, nullable=False)
+        env_api_key_name = Column(Text, nullable=False)
