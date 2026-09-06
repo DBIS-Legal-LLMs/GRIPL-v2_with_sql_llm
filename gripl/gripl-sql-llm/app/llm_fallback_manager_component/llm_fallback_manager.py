@@ -60,16 +60,20 @@ class LLMFallBackManager:
     def get_all_possible_llm_models_of_component(self, component_name: str) -> list:
 
         try:
-
-            return [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
-                    self.sql_execution_component.get_sql_query_results(f"""
-                                                                            SELECT
+            sql = f"""
+                    SELECT
                                                                             name,
                                                                             env_api_key_name
                                                                         FROM fallback_llm
                                                                         WHERE corresponding_comment = '{component_name}'
                                                                         ORDER BY "order" ASC;
-                                                                            """)]
+            """
+            print("sql")
+            print(sql)
+            ans =  [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
+                    self.sql_execution_component.get_sql_query_results(sql)]
+
+            print("ans ", ans)
 
         except Exception as e:
             print(traceback.format_exc())
