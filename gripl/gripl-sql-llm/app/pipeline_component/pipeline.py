@@ -57,9 +57,7 @@ class PipelineComponent:
                                                                             WHERE c.name = '{intent}';
                                                                             """)]
 
-            query = self.bpmn_data_pre_processor.get_name_from_activity_field_of_bpmn_file(activity_field)
 
-            reranked_reasons = self.reranker.get_reranked_results(query, reasons_of_intention)
 
             db_schema = get_db_schema_string()
 
@@ -67,7 +65,7 @@ class PipelineComponent:
                 activity_field=activity_field,
                 db_schema=db_schema,
                 intentions=intentions,
-                reasons_of_intentions=reranked_reasons,
+                reasons_of_intentions=reasons_of_intention,
             )
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
@@ -83,7 +81,7 @@ class PipelineComponent:
                 generated_query=generated_query,
                 error_message=error_message,
                 intentions=intentions,
-                reasons_of_intentions=reranked_reasons,
+                reasons_of_intentions=reasons_of_intention,
             )
 
             results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")
