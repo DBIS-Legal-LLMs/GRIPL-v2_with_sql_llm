@@ -1,10 +1,10 @@
-import re
-import json
-from json_repair import repair_json
 from groq import Groq
 from typing import Type
 from pydantic import BaseModel
 import traceback
+import instructor
+from app.config.retry_configuration import MAX_RETRIES
+
 
 class LLM:
 
@@ -18,75 +18,77 @@ class LLM:
         self.model_url = model_url
         self.api_key = api_key
         self.schema_output = schema_output
+        self.max_retries: int = MAX_RETRIES
 
     def get_answer_from_llm(self,
                             messages: list,
                             tools: list | None = None,
-                            tool_choice: dict | None = None,
                             ):
         try:
-            client = Groq(api_key=self.api_key)
 
-            kwargs = {
-                "model": self.model_name,
-                "messages": messages,
-            }
+            if not tools:
+                return self.get_structured_answer(messages)
 
-            if tools is not None:
-                kwargs["tools"] = tools
+            print("nach if keine tools")
+            client = instructor.from_provider(
+                model=self.model_name,
+                api_key=self.api_key,
+                mode=instructor.Mode.TOOLS,
+            )
 
-            if tool_choice is not None:
-                kwargs["tool_choice"] = tool_choice
+            response = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                response_model=None,
+                max_retries=self.max_retries,
+            )
 
-            if tools is None:
-                kwargs["response_format"] = {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "user_data_schema",
-                        "strict": True,
-                        "schema": self.schema_output.model_json_schema(),
-                    },
-                }
+            message = response.choices[0].message
 
-            response = client.chat.completions.create(**kwargs)
+            if message.tool_calls:
+                return self.get_tool_use_answer(messages)
 
-            raw_response =  response.choices[0].message
+            messages.append({
+                "role": "assistant",
+                "content": message.content,
+            })
+            return self.get_structured_answer(
+                messages,
+            )
 
-            if not raw_response.tool_calls:
-                return self.post_process_answer(raw_response.content)
+        except Exception:
 
-            return raw_response
-
-        except Exception as e:
             print(traceback.format_exc())
             return {}
 
-    def post_process_answer(self, raw_output: str):
-
-        code_block_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
-        match = re.search(code_block_pattern, raw_output, re.DOTALL)
-        if match:
-            raw_output = match.group(1).strip()
-        else:
-            start = raw_output.find('{')
-            end = raw_output.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                raw_output = raw_output[start:end + 1]
+    def get_structured_answer(self, messages: list):
 
         try:
-            repaired = repair_json(raw_output)
-            data = json.loads(repaired)
-        except Exception as e:
-            try:
-                data = json.loads(raw_output)
-            except json.JSONDecodeError:
 
-                return {}
+            # TODO: had problems with instructor.from_provider with groq , must be changed if not to groq
 
-        try:
-            validated = self.schema_output.model_validate(data)
-        except Exception as e:
+            client = instructor.from_groq(
+                Groq(
+                    api_key=self.api_key),
+                mode=instructor.Mode.JSON,
+            )
 
+            return client.create(
+                model=self.model_name,
+                response_model=self.schema_output,
+                max_retries=self.max_retries,
+                messages=messages,
+            )
+
+        except Exception:
+            print(traceback.format_exc())
             return {}
 
-        return validated
+    def get_tool_use_answer(self, messages: list):
+        try:
+            return messages[-1]
+        except Exception:
+            print(traceback.format_exc())
+            return []
