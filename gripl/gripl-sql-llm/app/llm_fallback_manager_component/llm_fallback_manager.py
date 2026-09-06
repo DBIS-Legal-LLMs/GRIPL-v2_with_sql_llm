@@ -9,6 +9,7 @@ import os
 
 load_dotenv()
 
+
 class LLMFallBackManager:
 
     def __init__(self,
@@ -20,7 +21,6 @@ class LLMFallBackManager:
         self.current_llm_index = 0
         self.sql_execution_component = SQLExecution()
 
-
     def get_answer_with_fallback(self,
                                  messages: list,
                                  tools: list | None = None,
@@ -28,18 +28,17 @@ class LLMFallBackManager:
 
         try:
 
-             all_models, env_api_key_name = self.get_all_possible_llm_models_of_component(self.llm_component_name)
+            all_models, env_api_key_name = self.get_all_possible_llm_models_of_component(self.llm_component_name)
 
-             for model, env_api_key_name in all_models:
+            for model, env_api_key_name in all_models:
+                self.get_answer_from_current_llm(
+                    messages=messages,
+                    tools=tools,
+                    model_name=model,
+                    api_key_env_name=env_api_key_name,
+                )
 
-                 self.get_answer_from_current_llm(
-                     messages=messages,
-                     tools=tools,
-                     model_name=model,
-                     api_key_env_name=env_api_key_name,
-                 )
-
-             return {}
+            return {}
 
         except Exception as e:
             print(traceback.format_exc())
@@ -48,8 +47,8 @@ class LLMFallBackManager:
 
         try:
 
-            return [(execution_result.get("reason", ""), execution_result.get("reason", "") )for execution_result in
-                                    self.sql_execution_component.get_sql_query_results(f"""
+            return [(execution_result.get("reason", ""), execution_result.get("reason", "")) for execution_result in
+                    self.sql_execution_component.get_sql_query_results(f"""
                                                                             SELECT
                                                                             name,
                                                                             env_api_key_name
@@ -71,10 +70,10 @@ class LLMFallBackManager:
         try:
 
             llm = LLM(
-                model_name= model_name,
-            model_url="",
-            api_key= os.getenv(api_key_env_name),
-            schema_output=self.schema_output
+                model_name=model_name,
+                model_url="",
+                api_key=os.getenv(api_key_env_name),
+                schema_output=self.schema_output
             )
 
             llm.get_answer_from_llm(
@@ -85,7 +84,3 @@ class LLMFallBackManager:
         except Exception as e:
             print(traceback.format_exc())
             raise
-
-
-
-
