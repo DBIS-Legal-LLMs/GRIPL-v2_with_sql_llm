@@ -80,9 +80,9 @@ class LLM:
                 messages=messages,
             )
 
-        except Exception as e:
+        except Exception:
             print(traceback.format_exc())
-            return {}
+            raise
 
     def get_tool_use_answer(self, messages: list):
         try:

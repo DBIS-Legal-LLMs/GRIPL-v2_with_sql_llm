@@ -36,9 +36,9 @@ class LLMFallBackManager:
 
         try:
 
-            all_models, env_api_key_name = self.get_all_possible_llm_models_of_component(self.llm_component_name)
+            models_env_api_key_list = self.get_all_possible_llm_models_of_component(self.llm_component_name)
 
-            for model, env_api_key_name in all_models:
+            for model, env_api_key_name in models_env_api_key_list:
                 try:
                     return self.get_answer_from_current_llm(
                         messages=messages,
@@ -68,12 +68,11 @@ class LLMFallBackManager:
                                                                         WHERE corresponding_comment = '{component_name}'
                                                                         ORDER BY "order" ASC;
             """
-            print("sql")
-            print(sql)
-            ans =  [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
+
+            return  [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
                     self.sql_execution_component.get_sql_query_results(sql)]
 
-            print("ans ", ans)
+
 
         except Exception as e:
             print(traceback.format_exc())
