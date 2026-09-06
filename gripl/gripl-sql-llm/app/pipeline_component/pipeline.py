@@ -38,7 +38,7 @@ class PipelineComponent:
 
     async def get_sid_and_reason_if_critical(self, activity_field: str)->dict[str, str]:
         try:
-      
+
             intentions = self.find_intention.find_intention_of_current_activity_field(activity_field)
 
             if not intentions:

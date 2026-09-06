@@ -57,9 +57,9 @@ class LLM:
                 messages,
             )
 
-        except Exception as e:
+        except Exception:
             print(traceback.format_exc())
-            return {}
+            raise
 
     def get_structured_answer(self, messages: list):
 
