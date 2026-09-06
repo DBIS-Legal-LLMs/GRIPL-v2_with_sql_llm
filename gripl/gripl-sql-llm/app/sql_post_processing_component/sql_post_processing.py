@@ -1,4 +1,4 @@
-from app.llm_component.llm import LLM
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
 from app.logging_component.logger import Logger
 from app.prompt_management_component.prompt_management import PromptManagement
 from .post_processing_mcp_client import PostProcessingMcpClient
@@ -9,14 +9,14 @@ import traceback
 class SQLPostProcessing:
 
     def __init__(self,
-                 llm: LLM,
-                 verification_llm: LLM,
+                 llm_handler: LLMFallBackManager,
+                 verification_llm_handler: LLMFallBackManager,
                  prompt_management: PromptManagement,
                  post_processing_mcp_client: PostProcessingMcpClient,
                  logging_component: Logger,
                  ):
-        self.llm = llm
-        self.verification_llm = verification_llm
+        self.llm_handler = llm_handler
+        self.verification_llm_handler = verification_llm_handler
         self.prompt_management = prompt_management
         self.post_processing_mcp_client = post_processing_mcp_client
         self.logging_component = logging_component

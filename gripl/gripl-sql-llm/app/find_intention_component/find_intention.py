@@ -1,5 +1,5 @@
 from app.logging_component.logger import Logger
-from app.llm_component.llm import LLM
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
 from app.prompt_management_component.prompt_management import PromptManagement
 from app.sql_execution_component.sql_execution import SQLExecution
 from pathlib import Path
@@ -8,12 +8,12 @@ import traceback
 class FindIntention:
 
     def __init__(self,
-                 llm: LLM,
+                 llm_handler: LLMFallBackManager,
                  prompt_management: PromptManagement,
                  sql_execution: SQLExecution,
                  logging_component: Logger,
                  ):
-        self.llm = llm
+        self.llm_handler = llm_handler
         self.prompt_management = prompt_management
         self.sql_execution = sql_execution
         self.logging_component = logging_component
@@ -49,7 +49,7 @@ class FindIntention:
                 },
             ]
 
-            answer = self.llm.get_answer_from_llm(
+            answer = self.llm_handler.get_answer_with_fallback(
                 messages,
             ).intents
 

@@ -1,4 +1,4 @@
-from app.llm_component.llm import LLM
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
 from app.logging_component.logger import Logger
 from app.prompt_management_component.prompt_management import PromptManagement
 from pathlib import Path
@@ -10,11 +10,11 @@ import traceback
 class SQLGenerator:
 
     def __init__(self,
-                 llm: LLM,
+                 llm_handler: LLMFallBackManager,
                  prompt_management: PromptManagement,
                  logging_component: Logger,
                  ):
-        self.llm = llm
+        self.llm_handler = llm_handler
         self.prompt_management = prompt_management
         self.logging_component = logging_component
 
@@ -54,7 +54,7 @@ class SQLGenerator:
                 },
             ]
 
-            answer = self.llm.get_answer_from_llm(
+            answer = self.llm_handler.get_answer_with_fallback(
                 messages
             ).query
 
