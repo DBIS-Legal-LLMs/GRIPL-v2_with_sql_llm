@@ -74,21 +74,21 @@ result_logger = Logger(
 )
 
 intention_component = FindIntention(
-    llm=intention_llm_handler,
+    llm_handler=intention_llm_handler,
     prompt_management=prompt_management,
     sql_execution=sql_execution,
     logging_component=intention_logger,
 )
 
 sql_generator = SQLGenerator(
-    llm=sql_generation_llm_handler,
+    llm_handler=sql_generation_llm_handler,
     prompt_management=prompt_management,
     logging_component=sql_generation_logger,
 )
 
 sql_post_processing = SQLPostProcessing(
-    llm=post_processing_llm_handler,
-    verification_llm=verification_llm_handler,
+    llm_handler=post_processing_llm_handler,
+    verification_llm_handler=verification_llm_handler,
     prompt_management=prompt_management,
     post_processing_mcp_client=post_processing_mcp_client,
     logging_component=post_processed_logger
