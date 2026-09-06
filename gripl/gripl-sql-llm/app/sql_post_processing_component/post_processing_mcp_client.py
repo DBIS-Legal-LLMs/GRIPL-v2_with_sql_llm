@@ -64,7 +64,7 @@ class PostProcessingMcpClient:
                         },
                     ]
 
-                    first_processed_query = sql_post_processing_component.llm.get_answer_from_llm(
+                    first_processed_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
                         messages
                     ).final_query
 
@@ -135,7 +135,7 @@ class PostProcessingMcpClient:
                             "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reasons_list)}"
                         })
 
-                        result = sql_post_processing_component.verification_llm.get_answer_from_llm(
+                        result = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
                             messages
                         )
 
@@ -164,7 +164,7 @@ class PostProcessingMcpClient:
                             ),
                         })
 
-                    return sql_post_processing_component.llm.get_answer_from_llm(
+                    return sql_post_processing_component.llm_handler.get_answer_with_fallback(
                         messages
                     ).final_query
 
