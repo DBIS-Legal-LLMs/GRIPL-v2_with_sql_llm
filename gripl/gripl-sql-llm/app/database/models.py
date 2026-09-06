@@ -99,6 +99,7 @@ class Reason(Base):
 class FallbackLLMModel(Base):
         __tablename__ = "fallback_llm"
         id = Column(Integer, primary_key=True)
+        corresponding_comment = Column(Text, nullable=False)
         name = Column(String(255), nullable=False)
         order = Column(Integer, nullable=False)
         model_url = Column(Text, nullable=False)
