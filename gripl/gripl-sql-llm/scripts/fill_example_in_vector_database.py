@@ -1,5 +1,18 @@
 from pathlib import Path
 import pandas as pd
+import json
+from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
+from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
+from sentence_transformers import SentenceTransformer
+
+
+def build_sql_query(category: str, reason: str):
+    return f"""
+        SELECT r.reason 
+        FROM reason r JOIN category_reason_association cra ON r.id = cra.reason_id 
+        JOIN category c ON c.id = cra.category_id 
+        WHERE c.name = '{category}' AND r.reason = '{reason}'
+"""
 
 data_path = Path(__file__).parents[3] / "dataset" / "evaluation_data.csv"
 
@@ -242,3 +255,57 @@ data_into_vector_database = [
         "category": "Access"
     },
 ]
+
+bpmn_data_preprocessor = BPMNDataPreProcessor()
+
+sentence_transformers = SentenceTransformer("all-MiniLM-L6-v2")
+
+dictionary_name = "activity_example"
+
+collection_name = "activity_example"
+
+chroma_db_client = ChromaDatabaseClient(
+    embedding_model=sentence_transformers,
+    dictionary_name=dictionary_name,
+    collection_name=collection_name,
+)
+
+data_to_fill = []
+
+for item in data_into_vector_database:
+
+    current_category = item["category"]
+
+    current_row = int(item.get("row", "0"))
+
+    current_sid = item.get("activity_field_id", "")
+
+    current_expected_values = json.loads(df.iloc[current_row].get("expected_values", []))
+
+    current_bpmn_file = df.iloc[current_row].get("bpmn_xml", "")
+
+    for val_reason in current_expected_values:
+
+        all_activities_field = bpmn_data_preprocessor.get_only_activity_field_of_bpmn_file(current_bpmn_file)
+
+        for activity in all_activities_field:
+
+            activity_sid = bpmn_data_preprocessor.get_sid_from_activity_field_of_bpmn_file(activity)
+
+            if activity_sid == current_sid and current_sid == val_reason.get("value", ""):
+
+                activity_name = bpmn_data_preprocessor.get_name_from_activity_field_of_bpmn_file(activity)
+
+                reason = val_reason.get("reason", "")
+
+                data_to_fill.append({
+                        "meta_data": {
+                            "sql": build_sql_query(current_category, reason)
+                        },
+                        "content": activity_name
+                })
+
+
+chroma_db_client.fill_collection_with_meta_data(data_to_fill)
+
+
