@@ -25,4 +25,5 @@ CRITICAL RULES:
 8. The generated SQL string must use double quotes only for the JSON wrapper; inside the SQL, use single quotes for the intent value.
 9. ANY deviation from this template will be considered a fatal error.
 10. Add a Where clause for the column reason of the table reason with the best suitable value of the given list reasons of the intention.
+11. If examples are given, take them as a guide.
 </instructions>

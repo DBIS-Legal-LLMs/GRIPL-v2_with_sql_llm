@@ -49,10 +49,16 @@ verification_llm_handler = LLMFallBackManager(
 
 post_processing_mcp_client = PostProcessingMcpClient()
 
-model = SentenceTransformer('intfloat/multilingual-e5-small')
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+dictionary_name = "activity_example"
+
+collection_name = "activity_example"
 
 chroma_db_client = ChromaDatabaseClient(
-    model
+    embedding_model=model,
+    dictionary_name=dictionary_name,
+    collection_name=collection_name,
 )
 
 sql_execution = SQLExecution()

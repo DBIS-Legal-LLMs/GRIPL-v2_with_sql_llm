@@ -11,3 +11,7 @@ Bpmn Activity Field
 reasons of the intention
 
 {reasons_of_intentions}
+
+examples:
+
+{few_shot_examples}

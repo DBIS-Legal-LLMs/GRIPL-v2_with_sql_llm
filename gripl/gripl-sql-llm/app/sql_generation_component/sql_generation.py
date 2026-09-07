@@ -29,6 +29,7 @@ class SQLGenerator:
                        db_schema:str,
                        intentions: list[str],
                        reasons_of_intentions: list[str],
+                       few_shot_examples: str
                        )->str:
         try:
             user_prompt = self.prompt_management.fill_prompt(
@@ -37,6 +38,7 @@ class SQLGenerator:
                 db_schema=db_schema,
                 intent=intentions,
                 reasons_of_intentions=reasons_of_intentions,
+                few_shot_examples=few_shot_examples
             )
 
             system_prompt = self.prompt_management.fill_prompt(
