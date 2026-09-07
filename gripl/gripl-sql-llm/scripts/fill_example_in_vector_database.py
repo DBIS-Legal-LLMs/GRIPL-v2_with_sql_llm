@@ -216,32 +216,29 @@ data_into_vector_database = [
         "activity_field_id": "sid-C61635D2-E3DB-4EB8-95BA-563D7F0D2A2E",
         "category": "Modification"
     },
-{
+    {
         "row": 31,
         "activity_field_id": "sid-14183816-D7CD-4AF7-A2E9-208E151796AE ",
         "category": "Access"
     },
-{
+    {
         "row": 31,
         "activity_field_id": "sid-54418E5F-348A-474E-A214-F556D67EE515",
         "category": "Storage"
     },
-{
+    {
         "row": 34,
         "activity_field_id": "abpu-b0399020c4b54c4fa3a4761cf43b01e1",
         "category": "Modification"
     },
-{
+    {
         "row": 34,
         "activity_field_id": "sid-1v3m-b0399020c4b54c4fa3a4761cf43b01e1",
         "category": "Transferal"
     },
-{
+    {
         "row": 34,
         "activity_field_id": "abo9-b0399020c4b54c4fa3a4761cf43b01e1",
         "category": "Access"
     },
-
-
-
 ]
