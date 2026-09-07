@@ -109,7 +109,9 @@ class ChromaDatabaseClient:
                         n_results=self.top_k
                     )
 
-            return results["metadatas"][0]
+            documents = results["documents"][0]
+            metadatas = results["metadatas"][0]
+            return list(zip(documents, metadatas))
 
         except Exception as e:
                 print(e)

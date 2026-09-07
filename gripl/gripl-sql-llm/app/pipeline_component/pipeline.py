@@ -58,6 +58,10 @@ class PipelineComponent:
                                                                             """)]
 
 
+            activity_name = self.bpmn_data_pre_processor.get_name_from_activity_field_of_bpmn_file(activity_field)
+            few_shot_examples = self.chroma_db_client.get_top_k_results_only_meta_data(activity_name)
+
+            formated_few_shot_examples = self.format_few_shot_examples(few_shot_examples)
 
             db_schema = get_db_schema_string()
 
@@ -66,6 +70,7 @@ class PipelineComponent:
                 db_schema=db_schema,
                 intentions=intentions,
                 reasons_of_intentions=reasons_of_intention,
+                few_shot_examples=formated_few_shot_examples,
             )
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
@@ -97,3 +102,14 @@ class PipelineComponent:
         except Exception as e:
             print(e)
             return {}
+
+    def format_few_shot_examples(self, list):
+
+        formated_prompt = "Consider for your generation as a guide. \n"
+
+        for activity_name, metadata in list:
+            formated_prompt += formated_prompt + f"Activity field name:  {activity_name}\n"
+            formated_prompt += formated_prompt + f"SQL query:  {metadata.get('sql', '')}\n"
+
+        return formated_prompt
+
