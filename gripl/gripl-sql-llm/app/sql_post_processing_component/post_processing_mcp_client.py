@@ -1,5 +1,5 @@
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import ClientSession
+from mcp.client.sse import sse_client
 import traceback
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
 from app.reranker_component.reranker import Reranker
@@ -14,6 +14,7 @@ class PostProcessingMcpClient:
     def __init__(self):
         self.max_iteration = 3
         self.bpmn_data_pre_processor = BPMNDataPreProcessor()
+        self.server_url = "http://localhost:7000/sse"
 
     async def get_mcp_client_answer(self,
                                     db_schema: str,
@@ -26,15 +27,8 @@ class PostProcessingMcpClient:
                                     ):
 
         try:
-            server_params = StdioServerParameters(
-                command="python",
-                args=[
-                    "-m",
-                    "app.sql_post_processing_component.post_processing_mcp_server"
-                ],
-            )
 
-            async with stdio_client(server_params) as (reader, writer):
+            async with sse_client(self.server_url) as (reader, writer):
                 async with ClientSession(reader, writer) as session:
                     await session.initialize()
 
