@@ -16,6 +16,7 @@ class Evaluator:
         self.data_loader = data_loader
         self.pipe_line = pipe_line
         self.logger = logger
+        self.amount_using_testdata = 5
 
     async def evaluate(self):
         try:
@@ -24,7 +25,7 @@ class Evaluator:
 
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
-            idx = 0
+            eval_pd_set = eval_pd_set.head(self.amount_using_testdata)
 
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
@@ -48,10 +49,6 @@ class Evaluator:
                 )
 
                 time.sleep(60)
-
-                idx += 1
-                if idx  == 5:
-                    break
 
         except Exception as e:
             print("in eval pipeline")
