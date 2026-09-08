@@ -1,53 +1,33 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .schemas import AnalysisSQLRequest
-from dotenv import load_dotenv
 import os
-from app.llm_component.llm import LLM
-from app.find_intention_component.find_intention import FindIntention
-from app.find_intention_component.schemas import IntentionAnswer
-from app.prompt_management_component.prompt_management import PromptManagement
-from app.sql_generation_component.sql_generation import SQLGenerator
-from app.sql_generation_component.schemas import SQLGenerationAnswer
 from app.database.db import Base, engine
 from app.database.models import *
+import json
+import traceback
+from app.pipeline_component.pipeline import PipelineComponent
+from app.data_loader_component.data_loader import DataLoader
+from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
+from app.find_intention_component.find_intention import FindIntention
+from app.reranker_component.reranker import Reranker
+from app.find_intention_component.schemas import IntentionAnswer
 from app.sql_execution_component.sql_execution import SQLExecution
-from jose import jwt, JWTError
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.sql_generation_component.sql_generation import SQLGenerator
+from app.sql_generation_component.schemas import SQLGenerationAnswer
+from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
+from app.sql_post_processing_component.schemas import SQLPostProcessingAnswer, SQLVerificationResultAnswer
+from app.sql_post_processing_component.post_processing_mcp_client import PostProcessingMcpClient
+from sentence_transformers import SentenceTransformer
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
+from app.prompt_management_component.prompt_management import PromptManagement
+from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
+from dotenv import load_dotenv
+from app.config.component_name import (INTENTION_MODEL, SQL_GENERATION_MODEL, POST_PROCESSING_MODEL, VERIFICATION_MODEL,
+                                       EMBEDDING_MODEL, CROSS_ENCODING_MODEL)
+from app.logging_component.logger import Logger
 
 load_dotenv()
-
-security = HTTPBearer()
-
-STYTCH_DOMAIN = os.getenv("STYTCH_DOMAIN")
-STYTCH_PROJECT_ID = os.getenv("STYTCH_PROJECT_ID")
-JWKS_URL = f"{STYTCH_DOMAIN}/.well-known/jwks.json"
-
-import requests
-
-jwks = requests.get(JWKS_URL).json()
-
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    try:
-
-        payload = jwt.decode(
-            token,
-            jwks,
-            algorithms=["RS256"],
-            audience=STYTCH_PROJECT_ID,
-            issuer=STYTCH_DOMAIN
-        )
-
-        return payload
-    except JWTError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
 
 app = FastAPI(
     title="GRIPL SQL LLM Service",
@@ -79,34 +59,145 @@ app.add_middleware(
 
 @app.post("/analyze", include_in_schema=False, response_model=None)
 def analyse(analysis_request: AnalysisSQLRequest = Depends(),
-            current_user=Depends(get_current_user)
             ):
-    grog_api_key = os.getenv("GROQ_API_KEY")
+    try:
 
-    user_id = current_user.get("sub")
-    print("user id")
-    print(user_id)
+        pipeline_component = get_pipeline(
+            model_name=json.loads(analysis_request.llmProps_raw).get("modelName", ""),
+            env_api_key=json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
+        )
 
-    ## TODO replace dummy response with correct answer
+        result = pipeline_component.get_analysis(analysis_request.bpmnFile)
 
-    return {
-        "criticalElements": [
-            {
-                "id": "Activity_1",
-                "name": "Read customer data",
-                "type": "task",
-                "reason": "Dummy output",
-                "references": []
-            },
-            {
-                "id": "Activity_2",
-                "name": "Store customer data",
-                "type": "task",
-                "reason": "Dummy output",
-                "references": []
-            }
-        ],
-        "amountOfRetries": 1,
-        "ragContext": None,
-        "ragPromptContext": None
-    }
+        return {
+            "criticalElements": result
+        }
+    except Exception:
+        print(traceback.format_exc())
+        return []
+
+
+def get_pipeline(
+        model_name: str,
+        env_api_key: str,
+):
+    try:
+
+
+        prompt_management = PromptManagement()
+
+        bpmn_data_pre_processor = BPMNDataPreProcessor()
+
+        intention_llm_handler = LLMFallBackManager(
+            llm_component_name=INTENTION_MODEL,
+            schema_output=IntentionAnswer,
+        )
+
+        sql_generation_llm_handler = LLMFallBackManager(
+            llm_component_name=SQL_GENERATION_MODEL,
+            schema_output=SQLGenerationAnswer,
+        )
+
+        post_processing_llm_handler = LLMFallBackManager(
+            llm_component_name=POST_PROCESSING_MODEL,
+            schema_output=SQLPostProcessingAnswer,
+        )
+
+        verification_llm_handler = LLMFallBackManager(
+            llm_component_name=VERIFICATION_MODEL,
+            schema_output=SQLVerificationResultAnswer,
+        )
+
+        post_processing_mcp_client = PostProcessingMcpClient()
+
+        embedding_model_name = get_embedding_or_reranker(
+            EMBEDDING_MODEL
+        )
+
+        model = SentenceTransformer(embedding_model_name)
+
+        dictionary_name = "activity_example"
+
+        collection_name = "activity_example"
+
+        chroma_db_client = ChromaDatabaseClient(
+            embedding_model=model,
+            dictionary_name=dictionary_name,
+            collection_name=collection_name,
+        )
+
+        sql_execution = SQLExecution()
+
+        intention_logger = Logger(
+            file_name="intention.csv"
+        )
+
+        sql_generation_logger = Logger(
+            file_name="sql_generation.csv"
+        )
+
+        post_processed_logger = Logger(
+            file_name="post_processing.csv"
+        )
+
+        intention_component = FindIntention(
+            llm_handler=intention_llm_handler,
+            prompt_management=prompt_management,
+            sql_execution=sql_execution,
+            logging_component=intention_logger,
+        )
+
+        sql_generator = SQLGenerator(
+            llm_handler=sql_generation_llm_handler,
+            prompt_management=prompt_management,
+            logging_component=sql_generation_logger,
+        )
+
+        sql_post_processing = SQLPostProcessing(
+            llm_handler=post_processing_llm_handler,
+            verification_llm_handler=verification_llm_handler,
+            prompt_management=prompt_management,
+            post_processing_mcp_client=post_processing_mcp_client,
+            logging_component=post_processed_logger
+        )
+
+        reranker_mode_name = get_embedding_or_reranker(CROSS_ENCODING_MODEL)
+
+        reranker = Reranker(reranker_mode_name)
+
+        return PipelineComponent(
+            chroma_db_client=chroma_db_client,
+            find_intention=intention_component,
+            reranker=reranker,
+            sql_execution=sql_execution,
+            sql_generation=sql_generator,
+            post_processing=sql_post_processing,
+            bpmn_data_pre_processor=bpmn_data_pre_processor,
+        )
+
+    except Exception:
+        print(traceback.format_exc())
+        return PipelineComponent()
+
+
+def get_embedding_or_reranker(
+        component_name: str,
+    ):
+        try:
+
+            sql_execution_component = SQLExecution()
+
+            sql = f"""
+                                SELECT name, env_api_key_name
+                                FROM fallback_llm
+                                WHERE corresponding_comment = '{component_name}'
+                               ORDER BY "order" ASC
+                               LIMIT 1;
+                        """
+
+            return [execution_result.get("name", "") for execution_result in
+                    sql_execution_component.get_sql_query_results(sql)][0]
+
+        except Exception:
+            print(traceback.format_exc())
+            return []

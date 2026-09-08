@@ -1,3 +1,5 @@
+import traceback
+
 from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
 from app.find_intention_component.find_intention import FindIntention
 from app.reranker_component.reranker import Reranker
@@ -25,6 +27,27 @@ class PipelineComponent:
         self.sql_generation = sql_generation
         self.post_processing = post_processing
         self.bpmn_data_pre_processor = bpmn_data_pre_processor
+
+    def get_analysis(self, bpmn_file_content: str):
+
+        try:
+
+            results = []
+
+            total_activities_fields = self.get_only_activity_fields(bpmn_file_content)
+
+            for activity in total_activities_fields:
+
+                current_result = self.get_sid_and_reason_if_critical(activity)
+
+                if current_result:
+                    results.append(current_result)
+
+            return results
+
+        except Exception:
+            print(traceback.format_exc())
+            return []
 
 
     def get_only_activity_fields(self, bpmn_file_content: str):
@@ -93,7 +116,7 @@ class PipelineComponent:
 
             if results_of_post_processed_query:
                 return {
-                    "value": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
+                    "id": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
                     "reason": results_of_post_processed_query ,
                 }
 
