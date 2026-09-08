@@ -12,14 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip install uv
 
 COPY requirements.txt .
 
 
-RUN pip install \
-    --default-timeout=1200 \
-    --prefix=/install \
-    -r requirements.txt
+RUN uv pip install --system --no-cache-dir -r requirements.txt --prefix /install
 
 
 
