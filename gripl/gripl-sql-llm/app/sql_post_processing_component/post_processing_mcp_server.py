@@ -1,17 +1,5 @@
 from mcp.server.fastmcp import FastMCP
 from app.sql_execution_component.sql_execution import SQLExecution
-from fastmcp.server.auth import BearerAuthProvider
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-auth = BearerAuthProvider(
-    jwks_uri=f"{os.getenv('STYTCH_DOMAIN')}/.well-known/jwks.json",
-    issuer=os.getenv("STYTCH_DOMAIN"),
-    algorithm="RS256",
-    audience=os.getenv("STYTCH_PROJECT_ID")
-)
 
 
 class MCPServer:
@@ -19,7 +7,7 @@ class MCPServer:
     def __init__(self,
                  sql_execution: SQLExecution,
                  ):
-        self.mcp = FastMCP("sql-post-processing-mcp", auth=auth)
+        self.mcp = FastMCP("sql-post-processing-mcp",)
         self.register_tools()
         self.execution_component = sql_execution
 
