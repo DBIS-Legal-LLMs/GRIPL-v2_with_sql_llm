@@ -6,7 +6,7 @@ import csv
 class Logger:
 
     def __init__(self, file_name: str):
-        self.log_directory = Path(__file__).parent
+        self.log_directory = Path(__file__).parents[1] / "eval"
         self.file_name = file_name
 
     def log(self,

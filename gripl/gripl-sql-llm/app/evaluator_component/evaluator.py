@@ -72,13 +72,13 @@ class Evaluator:
 
         project_root = Path(__file__).resolve().parent.parent.parent
 
-        intention_csv = project_root / "app" / "logging_component" / "intention.csv"
+        intention_csv = project_root / "app" / "eval" / "intention.csv"
 
-        sql_generation_csv = project_root / "app" / "logging_component" / "sql_generation.csv"
+        sql_generation_csv = project_root / "app" / "eval" / "sql_generation.csv"
 
-        post_processing_csv = project_root / "app" / "logging_component" / "post_processing.csv"
+        post_processing_csv = project_root / "app" / "eval" / "post_processing.csv"
 
-        result_csv = project_root / "app" / "logging_component" / "result.csv"
+        result_csv = project_root / "app" / "eval" / "result.csv"
 
         logging_files = [intention_csv, sql_generation_csv, post_processing_csv, result_csv]
 
