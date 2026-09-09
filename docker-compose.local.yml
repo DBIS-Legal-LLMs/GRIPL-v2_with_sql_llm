@@ -76,6 +76,8 @@ services:
     env_file:
       - .env.local
 
+    environment:
+        - MCP_SERVER_URL=http://mcp-server:7000/sse
     volumes:
 
       - huggingface_cache:/root/.cache/huggingface
@@ -86,6 +88,23 @@ services:
 
     ports:
       - "8082:8082"
+
+  mcp-server:
+    build:
+      context: ./gripl/gripl-sql-llm
+      dockerfile: Dockerfile
+    image: gripl-nlpsql:latest
+    container_name: mcp-server
+    restart: unless-stopped
+    command: python -m app.sql_post_processing_component.post_processing_mcp_server
+
+    volumes:
+      - ./gripl/gripl-sql-llm/test.db:/app/test.db
+      - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - app
+    ports:
+      - "7000:7000"
 
   gripl-neo4j:
     image: neo4j:5-community
