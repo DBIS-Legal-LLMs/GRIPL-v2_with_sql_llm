@@ -1,7 +1,7 @@
 "use client";
 
 import {Button} from "@/components/ui/button";
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState, useCallback} from "react";
 import {
     EvaluationMetadataReport,
     EvaluationReport,
@@ -28,6 +28,7 @@ import {ColorProvider, useColors} from "@/components/evaluation/charts/common/co
 import MetricsTable from "@/components/evaluation/charts/aggregated/metrics-table";
 import {useToast} from "@/components/ui/toast";
 import {toErrorMessage} from "@/lib/http-error";
+import {ModelConfig, LLMComponentKey, LLM_COMPONENTS} from "@/components/evaluation/config/sql-llms-config";
 
 type ModelReportEnvelope = {
     modelLabel: string;
@@ -39,14 +40,21 @@ interface EvaluationPageProps {
     datasets: Dataset[];
 }
 
-export default function EvaluationPage({ datasets }: EvaluationPageProps) {
+export default function EvaluationPage({datasets}: EvaluationPageProps) {
     const [evaluationRequest, setEvaluationRequest] = useState<MultiEvaluationRequest | null>(null);
 
     const [metadata, setMetadata] = useState<EvaluationMetadataReport | null>(null);
-    const [testCasesByRun, setTestCasesByRun] = useState<Map<number, (TestCaseReport & { modelLabel: string })[]>>(new Map());
+    const [testCasesByRun, setTestCasesByRun] = useState<Map<number, (TestCaseReport & {
+        modelLabel: string
+    })[]>>(new Map());
     const [summaryByRun, setSummaryByRun] = useState<Map<number, Map<string, EvaluationReportSummary>>>(new Map());
-    const [currentStepInfos, setCurrentStepInfos] = useState<(EvaluationReportStepInfo & { modelLabel: string, runNumber: number })[]>([]);
-    const [errorsByRun, setErrorsByRun] = useState<Map<number, (EvaluationReportError & { modelLabel: string })[]>>(new Map());
+    const [currentStepInfos, setCurrentStepInfos] = useState<(EvaluationReportStepInfo & {
+        modelLabel: string,
+        runNumber: number
+    })[]>([]);
+    const [errorsByRun, setErrorsByRun] = useState<Map<number, (EvaluationReportError & {
+        modelLabel: string
+    })[]>>(new Map());
     const [isLoading, setIsLoading] = useState(false);
     const [isFinished, setIsFinished] = useState(false);
 
@@ -56,8 +64,19 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
 
     const [isMetricsSummaryOpen, setIsMetricsSummaryOpen] = useState<boolean>(false);
 
-    const { colors, setColors } = useColors()
-    const { showToast, showError } = useToast()
+    const [sqlLlmConfigs, setSqlLlmConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
+        INTENTION_MODEL: [{model: '', apiKeyName: ''}],
+        SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
+        POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
+        VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
+    });
+
+    const handleSqlLlmConfigChange = useCallback((configs: Record<LLMComponentKey, ModelConfig[]>) => {
+        setSqlLlmConfigs(configs);
+    }, []);
+
+    const {colors, setColors} = useColors()
+    const {showToast, showError} = useToast()
 
     const processNdjsonStream = async (res: Response) => {
         if (!res.ok || !res.body) {
@@ -71,10 +90,10 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
         let buffer = "";
 
         while (true) {
-            const { done, value } = await reader.read();
+            const {done, value} = await reader.read();
             if (done) break;
 
-            buffer += decoder.decode(value, { stream: true });
+            buffer += decoder.decode(value, {stream: true});
             const lines = buffer.split("\n");
 
             for (let i = 0; i < lines.length - 1; i++) {
@@ -83,7 +102,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
 
                 try {
                     const env = JSON.parse(line) as ModelReportEnvelope;
-                    const { modelLabel, report, runNumber } = env;
+                    const {modelLabel, report, runNumber} = env;
 
                     if (report.type === "metadata") {
                         setMetadata(report);
@@ -91,7 +110,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                         setTestCasesByRun((prev) => {
                             const next = new Map(prev);
                             const runCases = next.get(runNumber) || [];
-                            next.set(runNumber, [...runCases, { ...(report as TestCaseReport), modelLabel }]);
+                            next.set(runNumber, [...runCases, {...(report as TestCaseReport), modelLabel}]);
                             return next;
                         });
                     } else if (report.type === "summary") {
@@ -103,12 +122,16 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                             return next;
                         });
                     } else if (report.type === "stepInfo") {
-                        setCurrentStepInfos((prev) => [...prev, { ...(report as EvaluationReportStepInfo), modelLabel, runNumber }]);
+                        setCurrentStepInfos((prev) => [...prev, {
+                            ...(report as EvaluationReportStepInfo),
+                            modelLabel,
+                            runNumber
+                        }]);
                     } else if (report.type === "error") {
                         setErrorsByRun((prev) => {
                             const next = new Map(prev);
                             const runErrors = next.get(runNumber) || [];
-                            next.set(runNumber, [...runErrors, { ...(report as EvaluationReportError), modelLabel }]);
+                            next.set(runNumber, [...runErrors, {...(report as EvaluationReportError), modelLabel}]);
                             return next;
                         });
                     } else {
@@ -140,10 +163,26 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
     const handleEvaluationStart = async () => {
         if (!evaluationRequest) return;
         resetState();
-        console.log("Sending request", evaluationRequest);
+
+        if (evaluationRequest.useSQLLM) {
+            const {modelsString, apiKeyNamesString} = flattenSqlLlmConfigs();
+
+            if (evaluationRequest.models && evaluationRequest.models.length > 0) {
+                const firstModel = evaluationRequest.models[0];
+                if (firstModel.llmProps) {
+                    firstModel.llmProps.modelName = modelsString;
+                    firstModel.llmProps.apiKey = apiKeyNamesString;
+                } else {
+                    console.warn("llmProps ist nicht vorhanden");
+                }
+            } else {
+                console.warn("Keine Models im Request vorhanden");
+            }
+        }
+
         const res = await fetch(`/api/gdpr/evaluation/stream`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify(evaluationRequest)
         });
         await processNdjsonStream(res);
@@ -191,7 +230,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                 if (ib !== -1) return 1;
                 return a - b;
             })
-            .map((id) => ({ id, name: nameById.get(id) ?? `Dataset ${id}` }));
+            .map((id) => ({id, name: nameById.get(id) ?? `Dataset ${id}`}));
     }, [testCases, errors, metadata, datasets]);
 
     const aggregateStats = useMemo<AggregatedEvaluationResults | null>(() => {
@@ -252,7 +291,16 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                         for (const [key, typeSummary] of Object.entries(modelSummary.perElementType)) {
                             let bucket = perTypeValues.get(key);
                             if (!bucket) {
-                                bucket = { displayName: typeSummary.displayName, precisions: [], recalls: [], f1Scores: [], tps: [], fps: [], fns: [], tns: [] };
+                                bucket = {
+                                    displayName: typeSummary.displayName,
+                                    precisions: [],
+                                    recalls: [],
+                                    f1Scores: [],
+                                    tps: [],
+                                    fps: [],
+                                    fns: [],
+                                    tns: []
+                                };
                                 perTypeValues.set(key, bucket);
                             }
                             bucket.precisions.push(typeSummary.precision);
@@ -366,7 +414,11 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
     const handleDownloadMarkdownReport = () => {
         const hasSummaries = summaryByRun.size > 0;
         if (testCasesByRun.size === 0 && !hasSummaries) {
-            showToast({title: "No results yet", description: "Run an evaluation before downloading a report.", variant: "info"});
+            showToast({
+                title: "No results yet",
+                description: "Run an evaluation before downloading a report.",
+                variant: "info"
+            });
             return;
         }
         const sections: string[] = [];
@@ -434,7 +486,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
             });
         }
 
-        const blob = new Blob([sections.join("\n\n")], { type: "text/markdown" });
+        const blob = new Blob([sections.join("\n\n")], {type: "text/markdown"});
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -448,7 +500,11 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
     const handleDownloadJsonReport = () => {
         const hasSummaries = summaryByRun.size > 0;
         if (testCasesByRun.size === 0 && !hasSummaries) {
-            showToast({title: "No results yet", description: "Run an evaluation before downloading a report.", variant: "info"});
+            showToast({
+                title: "No results yet",
+                description: "Run an evaluation before downloading a report.",
+                variant: "info"
+            });
             return;
         }
 
@@ -460,7 +516,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
 
         const summariesByRunObj: Record<number, any[]> = {};
         for (const [runNum, runSummaries] of summaryByRun.entries()) {
-            summariesByRunObj[runNum] = Array.from(runSummaries.entries()).map(([label, s]) => ({ label, summary: s }));
+            summariesByRunObj[runNum] = Array.from(runSummaries.entries()).map(([label, s]) => ({label, summary: s}));
         }
 
         const errorsByRunObj: Record<number, any[]> = {};
@@ -477,7 +533,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
             colors: colors
         };
 
-        const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(report, null, 2)], {type: "application/json"});
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -539,30 +595,58 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
     const onUploadJsonReportClick = () => {
         document.getElementById("upload-json-report")?.click()
     };
+    const flattenSqlLlmConfigs = () => {
+        const modelParts: string[] = [];
+        const apiKeyParts: string[] = [];
+
+        LLM_COMPONENTS.forEach(component => {
+            const configs = sqlLlmConfigs[component.key] || [];
+            const compModels: string[] = [];
+            const compApiKeys: string[] = [];
+            configs.forEach(cfg => {
+                if (cfg.model.trim() && cfg.apiKeyName.trim()) {
+                    compModels.push(cfg.model.trim());
+                    compApiKeys.push(cfg.apiKeyName.trim());
+                }
+            });
+            if (compModels.length > 0) {
+                modelParts.push(`${component.key}:${compModels.join(',')}`);
+                apiKeyParts.push(`${component.key}:${compApiKeys.join(',')}`);
+            }
+        });
+
+        return {
+            modelsString: modelParts.join(';'),
+            apiKeyNamesString: apiKeyParts.join(';')
+        };
+    };
 
     const summariesByModel = useMemo(
-        () => Array.from(summary.entries()).map(([label, s]) => ({ label, summary: s })),
+        () => Array.from(summary.entries()).map(([label, s]) => ({label, summary: s})),
         [summary]
     );
 
     return (
         <div className="w-full">
-            <EvaluationConfig onMultiConfigChanged={setEvaluationRequest} datasets={datasets} className="mb-6">
+            <EvaluationConfig onMultiConfigChanged={setEvaluationRequest} datasets={datasets}
+                              onSqlLlmConfigChange={handleSqlLlmConfigChange} className="mb-6">
                 <div className="flex flex-row justify-between items-start flex-wrap mb-4 gap-4">
                     <div className="flex flex-row gap-4 flex-wrap">
                         <Button variant="secondary" disabled={!isFinished} onClick={handleDownloadMarkdownReport}>
-                            <FileText className="h-4 w-4" />
+                            <FileText className="h-4 w-4"/>
                             Download Markdown Report
                         </Button>
                         <Button variant="secondary" disabled={!isFinished} onClick={handleDownloadJsonReport}>
-                            <FileText className="h-4 w-4" />
+                            <FileText className="h-4 w-4"/>
                             Download JSON Report
                         </Button>
-                        <input id="upload-json-report" type="file" accept=".json" className="hidden" onChange={handleUploadJsonReport} />
+                        <input id="upload-json-report" type="file" accept=".json" className="hidden"
+                               onChange={handleUploadJsonReport}/>
                         <label htmlFor="upload-json-report">
-                            <Button variant="secondary" onClick={onUploadJsonReportClick} disabled={isLoading} className="hover:cursor-pointer">
+                            <Button variant="secondary" onClick={onUploadJsonReportClick} disabled={isLoading}
+                                    className="hover:cursor-pointer">
                                 <span className="flex flex-row items-center gap-2">
-                                    <FileText className="h-4 w-4" />
+                                    <FileText className="h-4 w-4"/>
                                     Upload JSON Report
                                 </span>
                             </Button>
@@ -571,7 +655,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                     <Button variant="default" disabled={isLoading || !evaluationRequest}
                             onClick={handleEvaluationStart} className="h-auto">
                         <>
-                            {!isLoading && <Play className="h-4 w-4" /> }
+                            {!isLoading && <Play className="h-4 w-4"/>}
                             {!isLoading && "Start Evaluation"}
                             {isLoading && (
                                 <div className="flex flex-row space-x-4">
@@ -604,7 +688,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                             <h3 className="text-xl font-semibold">Evaluation Metadata</h3>
                         </CardHeader>
                         <CardContent>
-                            <>{ metadata && <CardDescription>
+                            <>{metadata && <CardDescription>
                                 <table>
                                     <tbody>
                                     <tr>
@@ -629,18 +713,38 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr><td>Datasets:</td><td className="pl-4">{metadata.datasets.map(d => d.name).join(", ")}</td></tr>
-                                    <tr><td>Total Test Cases:</td><td className="pl-4">{metadata.totalTestCases}</td></tr>
-                                    <tr><td>Default Evaluation Endpoint:</td><td className="pl-4">{metadata.defaultEvaluationEndpoint}</td></tr>
-                                    {metadata.totalRepetitions && metadata.totalRepetitions >= 1 && <tr><td>Total Runs:</td><td className="pl-4">{metadata.totalRepetitions}</td></tr>}
-                                    <tr><td>Seed:</td><td className="pl-4">{metadata.seed}</td></tr>
-                                    <tr><td>Timestamp:</td><td className="pl-4">{new Date(metadata.timestamp).toLocaleString()}</td></tr>
+                                    <tr>
+                                        <td>Datasets:</td>
+                                        <td className="pl-4">{metadata.datasets.map(d => d.name).join(", ")}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Test Cases:</td>
+                                        <td className="pl-4">{metadata.totalTestCases}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Default Evaluation Endpoint:</td>
+                                        <td className="pl-4">{metadata.defaultEvaluationEndpoint}</td>
+                                    </tr>
+                                    {metadata.totalRepetitions && metadata.totalRepetitions >= 1 && <tr>
+                                        <td>Total Runs:</td>
+                                        <td className="pl-4">{metadata.totalRepetitions}</td>
+                                    </tr>}
+                                    <tr>
+                                        <td>Seed:</td>
+                                        <td className="pl-4">{metadata.seed}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Timestamp:</td>
+                                        <td className="pl-4">{new Date(metadata.timestamp).toLocaleString()}</td>
+                                    </tr>
                                     </tbody>
                                 </table>
-                            </CardDescription> }</>
+                            </CardDescription>}</>
                         </CardContent>
                     </Card>
-                    {aggregateStats && metadata && metadata.totalRepetitions && <h2 className="text-2xl font-semibold mb-2">Aggregated Results Across  {metadata.totalRepetitions} Runs</h2> }
+                    {aggregateStats && metadata && metadata.totalRepetitions &&
+                        <h2 className="text-2xl font-semibold mb-2">Aggregated Results
+                            Across {metadata.totalRepetitions} Runs</h2>}
                     <div className="space-y-6 mb-8">
                         {/* Aggregate Statistics across all runs */}
                         {aggregateStats && metadata && metadata.totalRepetitions && metadata.totalRepetitions >= 1 && (<>
@@ -675,7 +779,8 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                                 />
                             </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <TestcaseResultsStacked aggregatedEvaluationResults={aggregateStats} repetisions={metadata.totalRepetitions} />
+                                <TestcaseResultsStacked aggregatedEvaluationResults={aggregateStats}
+                                                        repetisions={metadata.totalRepetitions}/>
                                 <MetricChart
                                     title="Retries"
                                     description="Number of retries accross 25 test cases (mean ± SD)"
@@ -685,7 +790,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                                     xAxisMaxOffset={2}
                                 />
                             </div>
-                            <MetricsTable aggregatedEvaluationResults={aggregateStats} />
+                            <MetricsTable aggregatedEvaluationResults={aggregateStats}/>
                             {Object.values(aggregateStats).some(s => s.ragRunsCounted > 0) && (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     <MetricChart
@@ -713,16 +818,17 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                 {metadata && metadata.totalRepetitions && metadata.totalRepetitions >= 1 && (
                     <>
                         <h2 className="text-2xl font-semibold mb-2">Results by Run</h2>
-                        <Tabs value={selectedRun.toString()} onValueChange={(v) => setSelectedRun(parseInt(v))} className="w-full mb-6">
+                        <Tabs value={selectedRun.toString()} onValueChange={(v) => setSelectedRun(parseInt(v))}
+                              className="w-full mb-6">
                             <TabsList className="w-full h-12 sticky top-0 z-20 mb-4">
-                                {Array.from({ length: metadata.totalRepetitions }, (_, i) => i + 1).map((runNum) => (
+                                {Array.from({length: metadata.totalRepetitions}, (_, i) => i + 1).map((runNum) => (
                                     <TabsTrigger value={runNum.toString()} key={`run-${runNum}-trigger`}>
                                         Run {runNum}
                                     </TabsTrigger>
                                 ))}
                             </TabsList>
 
-                            {Array.from({ length: metadata.totalRepetitions }, (_, i) => i + 1).map((runNum) => (
+                            {Array.from({length: metadata.totalRepetitions}, (_, i) => i + 1).map((runNum) => (
                                 <TabsContent value={runNum.toString()} key={`run-${runNum}-content`}>
                                     {!summaryByRun.get(runNum) && !testCasesByRun.get(runNum) && !errorsByRun.get(runNum) && (
                                         <Card className="p-4 text-muted-foreground mb-4">
@@ -742,7 +848,8 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
 
                                     <h2 className="text-2xl font-semibold mb-2">Results by
                                         Model{metadata && metadata.totalRepetitions && metadata.totalRepetitions > 1 ? ` (Run ${selectedRun})` : ""}</h2>
-                                    <Tabs className="w-full" value={selectedModel || metadata?.modelLabels?.[0]} onValueChange={setSelectedModel}>
+                                    <Tabs className="w-full" value={selectedModel || metadata?.modelLabels?.[0]}
+                                          onValueChange={setSelectedModel}>
                                         <TabsList className="w-full h-12 sticky top-12 z-10 mb-4">
                                             {metadata?.modelLabels.map?.((label) => (
                                                 <TabsTrigger value={label} key={`${label}-trigger`}>
@@ -770,8 +877,10 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
                                                         </div>
                                                     )}
 
-                                                    <h2 className="text-2xl font-semibold mb-2">Test Case Results for {label}</h2>
-                                                    <Tabs className="w-full" value={selectedDataset || (involvedDatasets[0] ? `dataset-${involvedDatasets[0].id}` : undefined)}
+                                                    <h2 className="text-2xl font-semibold mb-2">Test Case Results
+                                                        for {label}</h2>
+                                                    <Tabs className="w-full"
+                                                          value={selectedDataset || (involvedDatasets[0] ? `dataset-${involvedDatasets[0].id}` : undefined)}
                                                           onValueChange={setSelectedDataset}>
                                                         <TabsList className="w-full h-12 sticky top-24 z-30 mb-4">
                                                             {involvedDatasets.map((dataset) => (
