@@ -1,13 +1,15 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Switch} from "@/components/ui/switch";
+import {Separator} from "@/components/ui/separator";
 import {EndpointChoice} from "@/models/evaluation/Config";
 import {GenerateRandomInput} from "@/components/ui/input-generate-random";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface EvaluationConfigDefaultSettingsProps {
     availableEvaluationEndpoints: AnalysisEndpoint[];
@@ -36,10 +38,24 @@ interface EvaluationConfigDefaultSettingsProps {
 }
 
 const RAG_MODES = [
-    { value: "hybrid", label: "Hybrid (recommended)" },
-    { value: "local", label: "Local" },
-    { value: "global", label: "Global" },
-    { value: "naive", label: "Naive" },
+    {value: "hybrid", label: "Hybrid (recommended)"},
+    {value: "local", label: "Local"},
+    {value: "global", label: "Global"},
+    {value: "naive", label: "Naive"},
+];
+
+type ModelConfig = {
+    model: string;
+    apiKeyName: string;
+};
+
+type LLMComponentKey = 'INTENTION_MODEL' | 'SQL_GENERATION_MODEL' | 'POST_PROCESSING_MODEL' | 'VERIFICATION_MODEL';
+
+const LLM_COMPONENTS: { key: LLMComponentKey; label: string; description: string }[] = [
+    {key: 'INTENTION_MODEL', label: 'Intention Model', description: 'Modell für die Intentionserkennung.'},
+    {key: 'SQL_GENERATION_MODEL', label: 'SQL Generation Model', description: 'Modell für die SQL‑Generierung.'},
+    {key: 'POST_PROCESSING_MODEL', label: 'Post Processing Model', description: 'Modell für die Nachbearbeitung.'},
+    {key: 'VERIFICATION_MODEL', label: 'Verification Model', description: 'Modell für die Verifikation.'},
 ];
 
 export default function EvaluationConfigDefaultSettings(props: EvaluationConfigDefaultSettingsProps) {
@@ -68,6 +84,50 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         setuseSQLLM,
         setActivitiesOnly,
     } = props;
+
+    const [modelConfigs, setModelConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
+        INTENTION_MODEL: [{model: '', apiKeyName: ''}],
+        SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
+        POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
+        VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
+    });
+
+    const handleModelChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, model: value} : config
+            );
+            return updated;
+        });
+    };
+
+    const handleApiKeyNameChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, apiKeyName: value} : config
+            );
+            return updated;
+        });
+    };
+
+    const addConfig = (componentKey: LLMComponentKey) => {
+        setModelConfigs((prev) => ({
+            ...prev,
+            [componentKey]: [...prev[componentKey], {model: '', apiKeyName: ''}],
+        }));
+    };
+
+    const removeConfig = (componentKey: LLMComponentKey, index: number) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            if (updated[componentKey].length > 1) {
+                updated[componentKey] = updated[componentKey].filter((_, i) => i !== index);
+            }
+            return updated;
+        });
+    };
 
     return (
         <Card>
@@ -129,20 +189,22 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                            value={Number.isFinite(repetitions) ? repetitions : 1}
                            onChange={(e) => onRepetitionsChange(parseInt(e.target.value, 10) || 1)}
                            className="w-full"/>
-                    <p className="text-sm text-muted-foreground">The evaluation will be repeated n times to gather statistics.</p>
+                    <p className="text-sm text-muted-foreground">The evaluation will be repeated n times to gather
+                        statistics.</p>
                 </div>
                 <div className="space-y-2">
                     <Label>Seed</Label>
                     <GenerateRandomInput id="seed" placeholder="Optional seed for reproducibility"
-                           length={8}
-                           value={seed || ""}
-                           alphabet={"0123456789"}
-                           onChange={(e) => setSeed(parseInt(e.target.value))}
-                           className="w-full"/>
-                    <p className="text-sm text-muted-foreground">Warning: Not all models support a seed, but it will be used for models that support them.</p>
+                                         length={8}
+                                         value={seed || ""}
+                                         alphabet={"0123456789"}
+                                         onChange={(e) => setSeed(parseInt(e.target.value))}
+                                         className="w-full"/>
+                    <p className="text-sm text-muted-foreground">Warning: Not all models support a seed, but it will be
+                        used for models that support them.</p>
                 </div>
 
-                <Separator />
+                <Separator/>
 
                 {/* ── Evaluation Scope ──────────────────────────────── */}
                 <div className="flex items-center justify-between">
@@ -160,7 +222,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                     />
                 </div>
 
-                <Separator />
+                <Separator/>
 
                 {/* ── RAG Configuration ─────────────────────────────── */}
                 <div className="space-y-4">
@@ -191,7 +253,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                                 <Label>RAG Mode</Label>
                                 <Select value={ragMode} onValueChange={setRagMode}>
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RAG_MODES.map((m) => (
@@ -236,6 +298,50 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                         />
                     </div>
                 </div>
+                {useSQLLM && (
+                    <div className="space-y-6">
+                        {LLM_COMPONENTS.map((component) => (
+                            <div key={component.key} className="space-y-2">
+                                <Label className="text-sm font-medium">{component.label}</Label>
+                                <p className="text-xs text-muted-foreground">{component.description}</p>
+
+                                {modelConfigs[component.key].map((config, index) => (
+                                    <div key={index} className="flex items-center space-x-2">
+                                        <Input
+                                            placeholder="Modellname"
+                                            value={config.model}
+                                            onChange={(e) => handleModelChange(component.key, index, e.target.value)}
+                                        />
+                                        <Input
+                                            placeholder="API-Key Name (Env-Variable)"
+                                            value={config.apiKeyName}
+                                            onChange={(e) => handleApiKeyNameChange(component.key, index, e.target.value)}
+                                        />
+                                        {index > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeConfig(component.key, index)}
+                                                aria-label="Eintrag entfernen"
+                                            >
+                                            Entfernen
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addConfig(component.key)}
+                                    className="mt-1"
+                                >
+                                    Weitere Konfiguration hinzufügen
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
