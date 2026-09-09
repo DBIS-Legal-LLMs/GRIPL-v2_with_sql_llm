@@ -21,3 +21,16 @@ class SQLExecution:
 
         except sqlite3.Error as e:
             return {"error": str(e)}
+
+    def insert_sql(self, sql, params=None):
+
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
+                conn.commit()
+        except sqlite3.Error as e:
+            return {"error": str(e)}
