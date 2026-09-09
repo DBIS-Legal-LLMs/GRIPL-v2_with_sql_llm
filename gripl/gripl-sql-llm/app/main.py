@@ -62,9 +62,6 @@ def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             ):
     try:
 
-        print("use SQL LM ")
-        print(analysis_request.useSQLLM)
-
         pipeline_component = get_pipeline(
             model_name=json.loads(analysis_request.llmProps_raw).get("modelName", ""),
             env_api_key=json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
@@ -116,6 +113,8 @@ def get_pipeline(
         embedding_model_name = get_embedding_or_reranker(
             EMBEDDING_MODEL
         )
+
+        print("embedding model name: ", embedding_model_name)
 
         model = SentenceTransformer(embedding_model_name)
 
@@ -190,16 +189,24 @@ def get_embedding_or_reranker(
 
             sql_execution_component = SQLExecution()
 
+            print("db path ")
+            print(sql_execution_component.db_path)
+            print(sql_execution_component.db_path.exists())
+
+
             sql = f"""
-                                SELECT name, env_api_key_name
+                                SELECT name
                                 FROM fallback_llm
-                                WHERE corresponding_comment = '{component_name}'
-                               ORDER BY "order" ASC
-                               LIMIT 1;
+                                 WHERE corresponding_comment = '{component_name}'
+                                ORDER BY "order" ASC
+                                LIMIT 1;
+                                
                         """
 
-            return [execution_result.get("name", "") for execution_result in
+            return  [execution_result.get("name", "") for execution_result in
                     sql_execution_component.get_sql_query_results(sql)][0]
+
+
 
         except Exception:
             print(traceback.format_exc())
