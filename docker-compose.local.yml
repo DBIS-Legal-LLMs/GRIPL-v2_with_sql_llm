@@ -79,6 +79,7 @@ services:
     volumes:
 
       - huggingface_cache:/root/.cache/huggingface
+      - ./gripl/gripl-sql-llm/test.db:/app/test.db
 
     networks:
       - app
