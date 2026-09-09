@@ -17,7 +17,7 @@ class Logger:
 
         try:
             file_path = self.log_directory / self.file_name
-
+            file_path.parent.mkdir(parents=True, exist_ok=True)
             file_exists = file_path.exists()
 
             with open(
