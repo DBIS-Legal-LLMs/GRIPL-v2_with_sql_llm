@@ -65,10 +65,14 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
         print("request")
         print(vars(analysis_request))
 
-        pipeline_component = get_pipeline(
-            model_name=json.loads(analysis_request.llmProps_raw).get("modelName", ""),
-            env_api_key=json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
+        fill_in_db_models_and_env(
+            json.loads(analysis_request.llmProps_raw).get("modelName", ""),
+            json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
         )
+
+
+
+        pipeline_component = get_pipeline()
 
         bpmn_file = await analysis_request.bpmnFile.read()
 
@@ -82,9 +86,60 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
         return []
 
 
+def fill_in_db_models_and_env(
+        models:str,
+        api_keys_in_envy:str,
+):
+    try:
+
+        sql_execution_component = SQLExecution()
+
+        def parse_components(s: str):
+            result = {}
+            if not s:
+                return result
+            for part in s.split(';'):
+                if not part:
+                    continue
+                if ':' not in part:
+                    continue
+                key, values = part.split(':', 1)
+                items = [v.strip() for v in values.split(',') if v.strip()]
+                if items:
+                    result[key] = items
+            return result
+
+        models_map = parse_components(models)
+        api_keys_map = parse_components(api_keys_in_envy)
+
+        for comp_key, model_list in models_map.items():
+            api_key_list = api_keys_map.get(comp_key, [])
+
+            for idx, model_name in enumerate(model_list):
+
+                api_key_name = api_key_list[idx] if idx < len(api_key_list) else ""
+
+                sql = """
+                      INSERT INTO fallback_llm
+                          (corresponding_comment, name, "order", model_url, env_api_key_name)
+                      VALUES (?, ?, ?, ?, ?) \
+                      """
+                params = (
+                    comp_key,
+                    model_name,
+                    idx + 1,
+                    "",
+                    api_key_name
+                )
+
+
+                sql_execution_component.insert_sql(sql, params)
+
+    except Exception:
+        print(traceback.format_exc())
+
+
 def get_pipeline(
-        model_name: str,
-        env_api_key: str,
 ):
     try:
 
