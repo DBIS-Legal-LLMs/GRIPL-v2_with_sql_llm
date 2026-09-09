@@ -40,7 +40,7 @@ class PipelineComponent:
 
                 current_result = await self.get_sid_and_reason_if_critical(activity)
 
-                if current_result:
+                if current_result and current_result.get('id', "") != "" and current_result.get('reason', "") != "":
                     results.append(current_result)
 
             return results
