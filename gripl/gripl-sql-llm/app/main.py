@@ -62,6 +62,9 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             ):
     try:
 
+        print("request")
+        print(vars(analysis_request))
+
         pipeline_component = get_pipeline(
             model_name=json.loads(analysis_request.llmProps_raw).get("modelName", ""),
             env_api_key=json.loads(analysis_request.llmProps_raw).get("apiKey", ""),

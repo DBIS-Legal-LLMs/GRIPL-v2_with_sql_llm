@@ -8,8 +8,9 @@ import {Switch} from "@/components/ui/switch";
 import {Separator} from "@/components/ui/separator";
 import {EndpointChoice} from "@/models/evaluation/Config";
 import {GenerateRandomInput} from "@/components/ui/input-generate-random";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import {Button} from "@/components/ui/button";
+import {ModelConfig, LLMComponentKey} from "@/components/evaluation/config/sql-llms-config";
+
 
 interface EvaluationConfigDefaultSettingsProps {
     availableEvaluationEndpoints: AnalysisEndpoint[];
@@ -35,6 +36,8 @@ interface EvaluationConfigDefaultSettingsProps {
     setEvaluateRag: (v: boolean) => void;
     setuseSQLLM: (v: boolean) => void;
     setActivitiesOnly: (v: boolean) => void;
+    modelConfigs: Record<LLMComponentKey, ModelConfig[]>;
+    setModelConfigs: React.Dispatch<React.SetStateAction<Record<LLMComponentKey, ModelConfig[]>>>;
 }
 
 const RAG_MODES = [
@@ -43,13 +46,6 @@ const RAG_MODES = [
     {value: "global", label: "Global"},
     {value: "naive", label: "Naive"},
 ];
-
-type ModelConfig = {
-    model: string;
-    apiKeyName: string;
-};
-
-type LLMComponentKey = 'INTENTION_MODEL' | 'SQL_GENERATION_MODEL' | 'POST_PROCESSING_MODEL' | 'VERIFICATION_MODEL';
 
 const LLM_COMPONENTS: { key: LLMComponentKey; label: string; description: string }[] = [
     {key: 'INTENTION_MODEL', label: 'Intention Model', description: 'Modell für die Intentionserkennung.'},
@@ -83,14 +79,9 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         setEvaluateRag,
         setuseSQLLM,
         setActivitiesOnly,
+        modelConfigs,
+        setModelConfigs,
     } = props;
-
-    const [modelConfigs, setModelConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
-        INTENTION_MODEL: [{model: '', apiKeyName: ''}],
-        SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
-        POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
-        VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
-    });
 
     const handleModelChange = (componentKey: LLMComponentKey, index: number, value: string) => {
         setModelConfigs((prev) => {
@@ -324,7 +315,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                                                 onClick={() => removeConfig(component.key, index)}
                                                 aria-label="Eintrag entfernen"
                                             >
-                                            Entfernen
+                                                Entfernen
                                             </Button>
                                         )}
                                     </div>
