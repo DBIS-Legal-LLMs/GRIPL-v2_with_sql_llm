@@ -1,6 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 from app.sql_execution_component.sql_execution import SQLExecution
-
+import uvicorn
 
 class MCPServer:
 
@@ -46,10 +46,10 @@ class MCPServer:
 
 
     def start(self):
-        self.mcp.run(transport="http", host="0.0.0.0", port=7000)
+        self.mcp.run(transport="sse")
 
 
 if __name__ == "__main__":
     sql_execution_component = SQLExecution()
     server = MCPServer(sql_execution_component)
-    server.start()
+    uvicorn.run(server.mcp.sse_app(), host="0.0.0.0", port=7000)
