@@ -2,17 +2,20 @@ from mcp.server.fastmcp import FastMCP
 from app.sql_execution_component.sql_execution import SQLExecution
 import uvicorn
 
+
 class MCPServer:
 
     def __init__(self,
                  sql_execution: SQLExecution,
                  ):
-        self.mcp = FastMCP("sql-post-processing-mcp",)
+        self.mcp = FastMCP("sql-post-processing-mcp",
+                           host="0.0.0.0",
+                           port=7000,
+                           )
         self.register_tools()
         self.execution_component = sql_execution
 
     def register_tools(self):
-
         @self.mcp.tool()
         def get_all_intentions() -> list[str]:
             """
@@ -20,9 +23,10 @@ class MCPServer:
 
             :return: list of all intentions.
             """
-            return [category_result.get("name", "") for category_result in self.execution_component.get_sql_query_results(
-                "SELECT name  FROM category"
-            )]
+            return [category_result.get("name", "") for category_result in
+                    self.execution_component.get_sql_query_results(
+                        "SELECT name  FROM category"
+                    )]
 
         @self.mcp.tool()
         def get_all_reasons_of_category(category_name: str) -> list[str]:
@@ -44,7 +48,6 @@ class MCPServer:
                                                                                         """
             )]
 
-
     def start(self):
         self.mcp.run(transport="sse")
 
@@ -52,4 +55,4 @@ class MCPServer:
 if __name__ == "__main__":
     sql_execution_component = SQLExecution()
     server = MCPServer(sql_execution_component)
-    uvicorn.run(server.mcp.sse_app(), host="0.0.0.0", port=7000)
+    server.start()
