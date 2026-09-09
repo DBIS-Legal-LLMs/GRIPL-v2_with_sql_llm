@@ -78,6 +78,11 @@ services:
 
     environment:
         - MCP_SERVER_URL=http://mcp-server:7000/sse
+
+    depends_on:
+      mcp-server:
+        condition: service_started
+
     volumes:
 
       - huggingface_cache:/root/.cache/huggingface

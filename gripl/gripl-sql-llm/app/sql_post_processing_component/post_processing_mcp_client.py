@@ -7,6 +7,11 @@ from typing import TYPE_CHECKING
 import json
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 
 class PostProcessingMcpClient:
@@ -14,7 +19,7 @@ class PostProcessingMcpClient:
     def __init__(self):
         self.max_iteration = 3
         self.bpmn_data_pre_processor = BPMNDataPreProcessor()
-        self.server_url = "http://localhost:7000/sse"
+        self.server_url = os.getenv("MCP_SERVER_URL", "")
 
     async def get_mcp_client_answer(self,
                                     db_schema: str,
