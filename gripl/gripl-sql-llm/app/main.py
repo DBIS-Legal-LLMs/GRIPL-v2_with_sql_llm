@@ -58,7 +58,7 @@ app.add_middleware(
 
 
 @app.post("/analyze", include_in_schema=False, response_model=None)
-def analyse(analysis_request: AnalysisSQLRequest = Depends(),
+async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             ):
     try:
 
@@ -67,7 +67,9 @@ def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             env_api_key=json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
         )
 
-        result = pipeline_component.get_analysis(analysis_request.bpmnFile)
+        bpmn_file = await analysis_request.bpmnFile.read()
+
+        result = await pipeline_component.get_analysis(bpmn_file)
 
         return {
             "criticalElements": result
@@ -113,8 +115,6 @@ def get_pipeline(
         embedding_model_name = get_embedding_or_reranker(
             EMBEDDING_MODEL
         )
-
-        print("embedding model name: ", embedding_model_name)
 
         model = SentenceTransformer(embedding_model_name)
 
@@ -189,11 +189,6 @@ def get_embedding_or_reranker(
 
             sql_execution_component = SQLExecution()
 
-            print("db path ")
-            print(sql_execution_component.db_path)
-            print(sql_execution_component.db_path.exists())
-
-
             sql = f"""
                                 SELECT name
                                 FROM fallback_llm
@@ -205,8 +200,6 @@ def get_embedding_or_reranker(
 
             return  [execution_result.get("name", "") for execution_result in
                     sql_execution_component.get_sql_query_results(sql)][0]
-
-
 
         except Exception:
             print(traceback.format_exc())

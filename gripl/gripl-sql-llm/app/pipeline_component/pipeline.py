@@ -28,7 +28,7 @@ class PipelineComponent:
         self.post_processing = post_processing
         self.bpmn_data_pre_processor = bpmn_data_pre_processor
 
-    def get_analysis(self, bpmn_file_content: str):
+    async def get_analysis(self, bpmn_file_content: str):
 
         try:
 
@@ -38,7 +38,7 @@ class PipelineComponent:
 
             for activity in total_activities_fields:
 
-                current_result = self.get_sid_and_reason_if_critical(activity)
+                current_result = await self.get_sid_and_reason_if_critical(activity)
 
                 if current_result:
                     results.append(current_result)
