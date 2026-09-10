@@ -65,12 +65,12 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
     const [isMetricsSummaryOpen, setIsMetricsSummaryOpen] = useState<boolean>(false);
 
     const [sqlLlmConfigs, setSqlLlmConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
-        INTENTION_MODEL: [{model: '', apiKeyName: ''}],
-        SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
-        POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
-        VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
-        EMBEDDING_MODEL: [{model: '', apiKeyName: ''}],
-        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: ''}],
+        INTENTION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        SQL_GENERATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        POST_PROCESSING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        VERIFICATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        EMBEDDING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
     });
 
     const handleSqlLlmConfigChange = useCallback((configs: Record<LLMComponentKey, ModelConfig[]>) => {
@@ -167,13 +167,14 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
         resetState();
 
         if (evaluationRequest.useSQLLM) {
-            const {modelsString, apiKeyNamesString} = flattenSqlLlmConfigs();
+            const {modelsString, apiKeyNamesString, baseUrlsString} = flattenSqlLlmConfigs();
 
             if (evaluationRequest.models && evaluationRequest.models.length > 0) {
                 const firstModel = evaluationRequest.models[0];
                 if (firstModel.llmProps) {
                     firstModel.llmProps.modelName = modelsString;
                     firstModel.llmProps.apiKey = apiKeyNamesString;
+                    firstModel.llmProps.baseUrl = baseUrlsString;
                 } else {
                     console.warn("llmProps ist nicht vorhanden");
                 }
@@ -597,30 +598,37 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
     const onUploadJsonReportClick = () => {
         document.getElementById("upload-json-report")?.click()
     };
+
     const flattenSqlLlmConfigs = () => {
         const modelParts: string[] = [];
         const apiKeyParts: string[] = [];
+        const baseUrlParts: string[] = [];
 
         LLM_COMPONENTS.forEach(component => {
             const configs = sqlLlmConfigs[component.key] || [];
             const compModels: string[] = [];
             const compApiKeys: string[] = [];
+            const compBaseUrls: string[] = [];
+
             configs.forEach(cfg => {
                 const modelName = cfg.model.trim();
                 if (!modelName) return;
-                const apiKeyName = cfg.apiKeyName.trim();
                 compModels.push(modelName);
-                compApiKeys.push(apiKeyName);
+                compApiKeys.push(cfg.apiKeyName.trim());
+                compBaseUrls.push(cfg.baseUrl.trim());
             });
+
             if (compModels.length > 0) {
                 modelParts.push(`${component.key}:${compModels.join(',')}`);
                 apiKeyParts.push(`${component.key}:${compApiKeys.join(',')}`);
+                baseUrlParts.push(`${component.key}:${compBaseUrls.join(',')}`);
             }
         });
 
         return {
             modelsString: modelParts.join(';'),
-            apiKeyNamesString: apiKeyParts.join(';')
+            apiKeyNamesString: apiKeyParts.join(';'),
+            baseUrlsString: baseUrlParts.join(';'),
         };
     };
 

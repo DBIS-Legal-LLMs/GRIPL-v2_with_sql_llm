@@ -1,6 +1,7 @@
 export type ModelConfig = {
     model: string;
     apiKeyName: string;
+    baseUrl: string;
 };
 
 export type LLMComponentKey = 'INTENTION_MODEL' |

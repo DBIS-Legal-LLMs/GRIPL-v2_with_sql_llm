@@ -59,12 +59,12 @@ export default function EvaluationConfig({
     });
 
     const [modelConfigs, setModelConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
-        INTENTION_MODEL: [{model: '', apiKeyName: ''}],
-        SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
-        POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
-        VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
-        EMBEDDING_MODEL: [{model: '', apiKeyName: ''}],
-        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: ''}],
+        INTENTION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        SQL_GENERATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        POST_PROCESSING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        VERIFICATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        EMBEDDING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
+        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
     });
 
     useEffect(() => {

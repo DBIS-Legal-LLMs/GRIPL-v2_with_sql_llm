@@ -97,10 +97,20 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         });
     };
 
+    const handleBaseUrlChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, baseUrl: value} : config
+            );
+            return updated;
+        });
+    };
+
     const addConfig = (componentKey: LLMComponentKey) => {
         setModelConfigs((prev) => ({
             ...prev,
-            [componentKey]: [...prev[componentKey], {model: '', apiKeyName: ''}],
+            [componentKey]: [...prev[componentKey], {model: '', apiKeyName: '', baseUrl: ''}],
         }));
     };
 
@@ -301,6 +311,11 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                                             placeholder="API-Key Name (Env-Variable)"
                                             value={config.apiKeyName}
                                             onChange={(e) => handleApiKeyNameChange(component.key, index, e.target.value)}
+                                        />
+                                        <Input
+                                            placeholder="Base URL (optional)"
+                                            value={config.baseUrl}
+                                            onChange={(e) => handleBaseUrlChange(component.key, index, e.target.value)}
                                         />
                                         {index > 0 && (
                                             <Button
