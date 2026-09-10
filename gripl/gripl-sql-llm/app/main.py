@@ -62,7 +62,7 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             ):
     try:
 
-        print("request")
+        print("incomming object")
         print(vars(analysis_request))
 
         fill_in_db_models_and_env(

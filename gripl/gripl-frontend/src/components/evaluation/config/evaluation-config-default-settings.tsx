@@ -9,7 +9,7 @@ import {Separator} from "@/components/ui/separator";
 import {EndpointChoice} from "@/models/evaluation/Config";
 import {GenerateRandomInput} from "@/components/ui/input-generate-random";
 import {Button} from "@/components/ui/button";
-import {ModelConfig, LLMComponentKey} from "@/components/evaluation/config/sql-llms-config";
+import {ModelConfig, LLMComponentKey, LLM_COMPONENTS} from "@/components/evaluation/config/sql-llms-config";
 
 
 interface EvaluationConfigDefaultSettingsProps {
@@ -47,12 +47,6 @@ const RAG_MODES = [
     {value: "naive", label: "Naive"},
 ];
 
-const LLM_COMPONENTS: { key: LLMComponentKey; label: string; description: string }[] = [
-    {key: 'INTENTION_MODEL', label: 'Intention Model', description: 'Modell für die Intentionserkennung.'},
-    {key: 'SQL_GENERATION_MODEL', label: 'SQL Generation Model', description: 'Modell für die SQL‑Generierung.'},
-    {key: 'POST_PROCESSING_MODEL', label: 'Post Processing Model', description: 'Modell für die Nachbearbeitung.'},
-    {key: 'VERIFICATION_MODEL', label: 'Verification Model', description: 'Modell für die Verifikation.'},
-];
 
 export default function EvaluationConfigDefaultSettings(props: EvaluationConfigDefaultSettingsProps) {
     const {

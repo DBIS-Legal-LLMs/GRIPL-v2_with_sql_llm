@@ -10,7 +10,7 @@ import EvaluationConfigDefaultSettings from "@/components/evaluation/config/eval
 import EvaluationConfigDatasetSettings from "@/components/evaluation/config/evaluation-config-dataset-settings";
 import EvaluationConfigModelsSettings from "@/components/evaluation/config/evaluation-config-models-settings";
 import {nextLabel} from "@/lib/evaluation-config-utils";
-import {ModelConfig, LLMComponentKey, LLM_COMPONENTS} from "@/components/evaluation/config/sql-llms-config";
+import {ModelConfig, LLMComponentKey} from "@/components/evaluation/config/sql-llms-config";
 
 interface EvaluationConfigCardMultiProps {
     className?: string;
@@ -63,6 +63,8 @@ export default function EvaluationConfig({
         SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
         POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
         VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
+        EMBEDDING_MODEL: [{model: '', apiKeyName: ''}],
+        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: ''}],
     });
 
     useEffect(() => {
