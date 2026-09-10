@@ -23,6 +23,8 @@ class Evaluator:
 
             self.delete_result_file_if_exists()
 
+            self.fill_models_with_fall_backs_in_db()
+
             eval_pd_set = self.data_loader.load_evaluation_data_set_as_pd()
 
             eval_pd_set = eval_pd_set.head(self.amount_using_testdata)
@@ -85,3 +87,54 @@ class Evaluator:
         for file in logging_files:
             if file.exists():
                 file.unlink()
+
+    def fill_models_with_fall_backs_in_db(self):
+        try:
+
+            sql_execution_component = self.pipe_line.sql_execution
+
+            test_data = {
+                "INTENTION_MODEL": [
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                ],
+                "SQL_GENERATION_MODEL": [
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                ],
+                "POST_PROCESSING_MODEL": [
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                ],
+                "VERIFICATION_MODEL": [
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                ],
+                "EMBEDDING_MODEL": [
+                    ("all-MiniLM-L6-v2", "", ""),
+                ],
+                "CROSS_ENCODING_MODEL": [
+                    ("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1", "", ""),
+                ],
+            }
+
+            for comp_key, entries in test_data.items():
+                for idx, (model_name, api_key_name, base_url) in enumerate(entries):
+                    sql = """
+                          INSERT INTO fallback_llm
+                              (corresponding_comment, name, "order", model_url, env_api_key_name)
+                          VALUES (?, ?, ?, ?, ?) \
+                          """
+                    params = (comp_key, model_name, idx + 1, base_url, api_key_name)
+
+                    result = sql_execution_component.insert_sql(sql, params)
+                    if result and "error" in result:
+                        print(f"Fehler beim Einfügen: {result['error']}")
+                        return result
+
+            print("Alle Fallback-Modelle erfolgreich eingefügt.")
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return {"error": str(e)}
+
