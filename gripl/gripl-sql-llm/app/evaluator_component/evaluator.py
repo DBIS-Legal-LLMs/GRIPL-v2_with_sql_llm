@@ -32,18 +32,11 @@ class Evaluator:
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
 
-                current_activities_fields = self.pipe_line.get_only_activity_fields(current_bpmn_file)
-
-                predicted_critical_elements = []
+                predicted_critical_elements = self.pipe_line.get_analysis(current_bpmn_file)
 
                 gold_critical_elements = row.get("expected_values", [])
 
-                for activity in current_activities_fields:
-
-                    possible_critical_element = await self.pipe_line.get_sid_and_reason_if_critical(activity)
-                    if possible_critical_element:
-                        predicted_critical_elements.append(possible_critical_element)
-                    time.sleep(60)
+                time.sleep(60)
 
                 self.logger.log_results(
                     gold_results=gold_critical_elements,
