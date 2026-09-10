@@ -69,6 +69,8 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
         SQL_GENERATION_MODEL: [{model: '', apiKeyName: ''}],
         POST_PROCESSING_MODEL: [{model: '', apiKeyName: ''}],
         VERIFICATION_MODEL: [{model: '', apiKeyName: ''}],
+        EMBEDDING_MODEL: [{model: '', apiKeyName: ''}],
+        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: ''}],
     });
 
     const handleSqlLlmConfigChange = useCallback((configs: Record<LLMComponentKey, ModelConfig[]>) => {
@@ -604,10 +606,11 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
             const compModels: string[] = [];
             const compApiKeys: string[] = [];
             configs.forEach(cfg => {
-                if (cfg.model.trim() && cfg.apiKeyName.trim()) {
-                    compModels.push(cfg.model.trim());
-                    compApiKeys.push(cfg.apiKeyName.trim());
-                }
+                const modelName = cfg.model.trim();
+                if (!modelName) return;
+                const apiKeyName = cfg.apiKeyName.trim();
+                compModels.push(modelName);
+                compApiKeys.push(apiKeyName);
             });
             if (compModels.length > 0) {
                 modelParts.push(`${component.key}:${compModels.join(',')}`);
