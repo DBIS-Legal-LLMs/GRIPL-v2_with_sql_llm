@@ -113,7 +113,8 @@ class PostProcessingMcpClient:
                                                 "Deletion", "Access"]
                             messages.append({
                                 "role": "user",
-                                "content": f"Their was an error in getting all intentions: only values from {','.join(valid_intentions)}",
+                                "content": f"Their was an error in getting all reasons of one intention "
+                                           f"becaused used intention didnt exists: only intentions from {','.join(valid_intentions)}",
                             })
                             continue
                         except Exception as e:
