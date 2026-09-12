@@ -37,41 +37,6 @@ class PostProcessingMcpClient:
                 async with ClientSession(reader, writer) as session:
                     await session.initialize()
 
-                    user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                        sql_post_processing_component.user_prompt_path,
-                        activity_field=activity_field,
-                        db_schema=db_schema,
-                        generated_query=generated_query,
-                        error_message=error_message,
-                        intent=",".join(intentions),
-                        reasons_of_intentions=",".join(reasons_of_intentions),
-                    )
-
-                    system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                        sql_post_processing_component.system_prompt_path,
-                    )
-
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": system_prompt,
-                        },
-                        {
-                            "role": "user",
-                            "content": user_prompt,
-                        },
-                    ]
-
-                    first_processed_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
-                        messages
-                    ).final_query
-
-                    sql_post_processing_component.logging_component.log(
-                        user_prompt,
-                        system_prompt,
-                        first_processed_query,
-                    )
-
                     tools_result = await session.list_tools()
 
                     mcp_tools = tools_result.tools
@@ -84,7 +49,7 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.verification_user_prompt_path,
                         activity_field=activity_field,
                         intention=intention,
-                        generated_query=first_processed_query,
+                        generated_query=generated_query,
                         db_schema=db_schema,
                     )
 
@@ -92,16 +57,7 @@ class PostProcessingMcpClient:
                         sql_post_processing_component.verification_system_prompt_path,
                     )
 
-                    messages = [
-                        {
-                            "role": "system",
-                            "content": verification_system_prompt,
-                        },
-                        {
-                            "role": "user",
-                            "content": verification_user_prompt,
-                        },
-                    ]
+                    messages = []
 
                     for i in range(1, self.max_iteration + 1):
 
