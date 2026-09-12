@@ -32,7 +32,7 @@ class Evaluator:
             for index, row in eval_pd_set.iterrows():
                 current_bpmn_file = row["bpmn_xml"]
 
-                predicted_critical_elements = self.pipe_line.get_analysis(current_bpmn_file)
+                predicted_critical_elements = await self.pipe_line.get_analysis(current_bpmn_file)
 
                 gold_critical_elements = row.get("expected_values", [])
 
