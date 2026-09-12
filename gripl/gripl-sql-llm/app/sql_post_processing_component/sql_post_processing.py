@@ -54,3 +54,59 @@ class SQLPostProcessing:
             print(traceback.format_exc())
             print(e)
             return ""
+
+    def current_post_processed_query(self,
+                                     db_schema: str,
+                                     activity_field: str,
+                                     generated_query: str,
+                                     error_message: str,
+                                     intentions: list[str],
+                                     reasons_of_intentions: list[str],
+                                     hint:str
+                                     ) -> str:
+
+        try:
+
+            post_processed_user_prompt = self.prompt_management.fill_prompt(
+                self.user_prompt_path,
+                db_schema=db_schema,
+                activity_field=activity_field,
+                generated_query=generated_query,
+                error_message=error_message,
+                intent=intentions[0],
+                reasons_of_intentions=",".join(reasons_of_intentions),
+                hint=hint
+            )
+
+            post_processed_system_prompt = self.prompt_management.fill_prompt(
+                self.system_prompt_path,
+            )
+
+            messages = [
+                {
+                    "role": "user",
+                    "content": post_processed_user_prompt,
+                },
+                {
+                    "role": "system",
+                    "content": post_processed_system_prompt,
+                }
+            ]
+
+            answer = self.llm_handler.get_answer_with_fallback(
+                messages,
+            ).final_query
+
+            self.logging_component.log(
+                post_processed_user_prompt,
+                post_processed_system_prompt,
+                answer,
+            )
+
+            return answer
+
+        except Exception as e:
+            print("e in post_processing")
+            print(traceback.format_exc())
+            return ""
+

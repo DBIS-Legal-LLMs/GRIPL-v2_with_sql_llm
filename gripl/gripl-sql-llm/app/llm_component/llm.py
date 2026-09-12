@@ -47,7 +47,7 @@ class LLM:
             message = response.choices[0].message
 
             if message.tool_calls:
-                return self.get_tool_use_answer(messages)
+                return message
 
             messages.append({
                 "role": "assistant",

@@ -15,3 +15,6 @@ Intent:
 
 Reason of Intent:
 {reasons_of_intentions}
+
+Hint:
+{hint}
