@@ -58,8 +58,9 @@ class PostProcessingMcpClient:
                     )
 
                     messages = [
-                        {"role": "system"},
-                        {"content": verification_system_prompt},
+                        {"role": "system",
+                         "content": verification_system_prompt
+                         },
                     ]
 
                     for i in range(1, self.max_iteration + 1):
@@ -99,7 +100,7 @@ class PostProcessingMcpClient:
 
                             reason_of_intention_answer = await session.call_tool(
                                 "get_all_reasons_of_category",
-                                {"category_name": intention}
+                                {"category_name": current_intention}
                             )
 
                             if hasattr(reason_of_intention_answer, 'structuredContent') and reason_of_intention_answer.structuredContent:
@@ -170,9 +171,21 @@ class PostProcessingMcpClient:
                             ),
                         })
 
-                    return sql_post_processing_component.llm_handler.get_answer_with_fallback(
+                        current_intention = result.intention
+                        current_reasons_list = result.reason
+                        current_query = result.final_query
+
+
+                    final_query =  sql_post_processing_component.llm_handler.get_answer_with_fallback(
                         messages
                     ).final_query
+
+                    sql_post_processing_component.logging_component.log(
+                        str(messages),
+                        verification_system_prompt,
+                        final_query,
+                    )
+                    return final_query
 
         except Exception as e:
             print("error in mcp client")
