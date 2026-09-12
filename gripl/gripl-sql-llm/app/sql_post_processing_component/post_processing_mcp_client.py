@@ -158,7 +158,8 @@ class PostProcessingMcpClient:
                                 current_hint = result.explanation
 
                         except Exception as e:
-                            pass
+                            print("error in one iteration")
+                            print(traceback.format_exc())
 
                     final_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
                             verification_component_messages
