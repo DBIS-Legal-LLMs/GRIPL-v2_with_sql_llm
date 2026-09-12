@@ -5,6 +5,10 @@ from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDa
 from app.reranker_component.reranker import Reranker
 from typing import TYPE_CHECKING
 import json
+from app.find_intention_component.schemas import IntentionAnswer
+
+from pydantic_core._pydantic_core import ValidationError
+
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
 from dotenv import load_dotenv
@@ -41,52 +45,100 @@ class PostProcessingMcpClient:
 
                     mcp_tools = tools_result.tools
 
-                    intention = intentions[0]
+                    current_intention = intentions[0]
+
+                    current_query = generated_query
+
+                    current_reasons_list = reasons_of_intentions
 
                     groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
-
-                    verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                        sql_post_processing_component.verification_user_prompt_path,
-                        activity_field=activity_field,
-                        intention=intention,
-                        generated_query=generated_query,
-                        db_schema=db_schema,
-                    )
 
                     verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.verification_system_prompt_path,
                     )
 
-                    messages = []
+                    messages = [
+                        {"role": "system"},
+                        {"content": verification_system_prompt},
+                    ]
 
                     for i in range(1, self.max_iteration + 1):
 
-                        tool_result = await session.call_tool("get_all_intentions", {})
+                        try:
+                            tool_result = await session.call_tool("get_all_intentions", {})
 
-                        if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
-                            intentions_list = tool_result.structuredContent.get('result', [])
-                        else:
-                            intentions_list = [item.text for item in tool_result.content if item.type == 'text']
+                            if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
+                                intentions_list = tool_result.structuredContent.get('result', [])
+                            else:
+                                intentions_list = [item.text for item in tool_result.content if item.type == 'text']
+
+                        except ValidationError:
+                            valid_intentions = ["Collection", "Storage", "Usage", "Transferal", "Modification", "Deletion", "Access"]
+                            messages.append({
+                                "role": "user",
+                                "content": f"Their was an error in getting all intentions: only values from {','.join(valid_intentions)}",
+                            })
+                            continue
+                        except Exception as e:
+                            messages.append({
+                                "role": "user",
+                                "content": f"There was an error in getting all intentions: {traceback.format_exc()}",
+                            })
+                            continue
 
                         messages.append({
                             "role": "user",
-                            "content": f"Die verfügbaren Intentionen sind: {json.dumps(intentions_list)}"
+                            "content": f"All available intentions: {json.dumps(intentions_list)}"
                         })
 
-                        reason_of_intention_answer = await session.call_tool(
-                            "get_all_reasons_of_category",
-                            {"category_name": intention}
-                        )
+                        try:
 
-                        if hasattr(reason_of_intention_answer, 'structuredContent') and reason_of_intention_answer.structuredContent:
-                            reasons_list = reason_of_intention_answer.structuredContent.get('result', [])
-                        else:
-                            reasons_list = [item.text for item in reason_of_intention_answer.content if item.type == 'text']
+                            validated = IntentionAnswer(
+                                intents=[intention]
+                            )
 
+                            reason_of_intention_answer = await session.call_tool(
+                                "get_all_reasons_of_category",
+                                {"category_name": intention}
+                            )
+
+                            if hasattr(reason_of_intention_answer, 'structuredContent') and reason_of_intention_answer.structuredContent:
+                                reasons_list = reason_of_intention_answer.structuredContent.get('result', [])
+                            else:
+                                reasons_list = [item.text for item in reason_of_intention_answer.content if item.type == 'text']
+
+                        except ValidationError:
+                            valid_intentions = ["Collection", "Storage", "Usage", "Transferal", "Modification",
+                                                "Deletion", "Access"]
+                            messages.append({
+                                "role": "user",
+                                "content": f"Their was an error in getting all intentions: only values from {','.join(valid_intentions)}",
+                            })
+                            continue
+                        except Exception as e:
+                            messages.append({
+                                "role": "user",
+                                "content": f"Their was an error in getting all reasons of one intention: {traceback.format_exc()}."
+                            })
+                            continue
 
                         messages.append({
                             "role": "user",
-                            "content": f"Die verfügbaren Reasons der category  sind: {json.dumps(reasons_list)}"
+                            "content": f"The available reasons of the intention: {json.dumps(reasons_list)}"
+                        })
+
+                        verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                            sql_post_processing_component.verification_user_prompt_path,
+                            activity_field=activity_field,
+                            intention=current_intention,
+                            generated_query=current_query,
+                            reasons_of_intentions=current_reasons_list,
+                            db_schema=db_schema,
+                        )
+
+                        messages.append({
+                            "role": "user",
+                            "content": verification_user_prompt
                         })
 
                         result = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
