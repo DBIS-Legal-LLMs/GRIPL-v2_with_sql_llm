@@ -51,141 +51,125 @@ class PostProcessingMcpClient:
 
                     current_reasons_list = reasons_of_intentions
 
+                    current_error_message = error_message
+
+                    current_hint = ""
+
                     groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
 
-                    verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                        sql_post_processing_component.verification_system_prompt_path,
+                    verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.verification_user_prompt_path,
+                        activity_field=activity_field,
+                        intention=current_intention,
+                        generated_query=current_query,
+                        reasons_of_intentions=current_reasons_list,
+                        db_schema=db_schema,
                     )
 
-                    messages = [
-                        {"role": "system",
-                         "content": verification_system_prompt
-                         },
+                    verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                        sql_post_processing_component.verification_system_prompt_path)
+
+                    verification_component_messages = [
+                        {
+                            "role": "system",
+                            "content": verification_system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": verification_user_prompt,
+                        }
                     ]
 
                     for i in range(1, self.max_iteration + 1):
-
-                        try:
-                            tool_result = await session.call_tool("get_all_intentions", {})
-
-                            if hasattr(tool_result, 'structuredContent') and tool_result.structuredContent:
-                                intentions_list = tool_result.structuredContent.get('result', [])
-                            else:
-                                intentions_list = [item.text for item in tool_result.content if item.type == 'text']
-
-                        except ValidationError:
-                            valid_intentions = ["Collection", "Storage", "Usage", "Transferal", "Modification", "Deletion", "Access"]
-                            messages.append({
-                                "role": "user",
-                                "content": f"Their was an error in getting all intentions: only values from {','.join(valid_intentions)}",
-                            })
-                            continue
-                        except Exception as e:
-                            messages.append({
-                                "role": "user",
-                                "content": f"There was an error in getting all intentions: {traceback.format_exc()}",
-                            })
-                            continue
-
-                        messages.append({
-                            "role": "user",
-                            "content": f"All available intentions: {json.dumps(intentions_list)}"
-                        })
-
                         try:
 
-                            validated = IntentionAnswer(
-                                intents=[intention]
+                            current_query =  sql_post_processing_component.current_post_processed_query(
+                                db_schema=db_schema,
+                                activity_field=activity_field,
+                                generated_query=current_query,
+                                error_message=current_error_message,
+                                intentions=current_intention,
+                                reasons_of_intentions=current_reasons_list,
+                                hint=current_hint,
                             )
 
-                            reason_of_intention_answer = await session.call_tool(
-                                "get_all_reasons_of_category",
-                                {"category_name": current_intention}
+                            verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
+                                messages=verification_component_messages,
+                                tool=groq_tools,
                             )
 
-                            if hasattr(reason_of_intention_answer, 'structuredContent') and reason_of_intention_answer.structuredContent:
-                                reasons_list = reason_of_intention_answer.structuredContent.get('result', [])
-                            else:
-                                reasons_list = [item.text for item in reason_of_intention_answer.content if item.type == 'text']
+                            if verification_answer.tool_calls:
+                                for tool_call in verification_answer.tool_calls:
+                                    tool_name = tool_call.function.name
+                                    tool_args = json.loads(tool_call.function.arguments or "{}")
 
-                        except ValidationError:
-                            valid_intentions = ["Collection", "Storage", "Usage", "Transferal", "Modification",
-                                                "Deletion", "Access"]
-                            messages.append({
-                                "role": "user",
-                                "content": f"Their was an error in getting all reasons of one intention "
-                                           f"becaused used intention didnt exists: only intentions from {','.join(valid_intentions)}",
-                            })
-                            continue
+                                    mcp_result = await session.call_tool(tool_name, tool_args)
+
+                                    parts = []
+                                    for block in mcp_result.content:
+                                        text = getattr(block, "text", None)
+                                        if text is not None:
+                                            parts.append(text)
+                                        else:
+                                            parts.append(json.dumps(block.model_dump(), ensure_ascii=False))
+                                    tool_result_text = "\n".join(parts)
+
+
+                                    verification_component_messages.append({
+                                        "role": "tool",
+                                        "tool_call_id": tool_call.id,
+                                        "content": tool_result_text,
+                                    })
+
+                            result = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
+                                messages=verification_component_messages,
+                                tool=groq_tools,
+                            )
+
+                            if not result.tool_calls:
+                                sql_post_processing_component.logging_component.log(
+                                    str(verification_component_messages),
+                                    verification_system_prompt,
+                                    result,
+                                )
+
+                                if (
+                                        result.intention_status == "unchanged"
+                                        and result.reason_status == "unchanged"
+                                ):
+                                    return result.final_query
+
+                                intention = result.intention
+
+                                verification_component_messages.append({
+                                    "role": "user",
+                                    "content": (
+                                        "The previous validation changed the intention or reason. "
+                                        "Validate the corrected query again.\n\n"
+                                        f"Current intention: {result.intention}\n"
+                                        f"Current reason: {result.reason}\n"
+                                        f"Current SQL query:\n{result.final_query}"
+                                    ),
+                                })
+
+                                current_intention = result.intention
+                                current_reasons_list = result.reason
+                                current_query = result.final_query
+                                current_hint = result.explanation
+
                         except Exception as e:
-                            messages.append({
-                                "role": "user",
-                                "content": f"Their was an error in getting all reasons of one intention: {traceback.format_exc()}."
-                            })
-                            continue
+                            pass
 
-                        messages.append({
-                            "role": "user",
-                            "content": f"The available reasons of the intention: {json.dumps(reasons_list)}"
-                        })
-
-                        verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                            sql_post_processing_component.verification_user_prompt_path,
-                            activity_field=activity_field,
-                            intention=current_intention,
-                            generated_query=current_query,
-                            reasons_of_intentions=current_reasons_list,
-                            db_schema=db_schema,
-                        )
-
-                        messages.append({
-                            "role": "user",
-                            "content": verification_user_prompt
-                        })
-
-                        result = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
-                            messages
-                        )
-
-                        sql_post_processing_component.logging_component.log(
-                            str(messages),
-                            verification_system_prompt,
-                            result,
-                        )
-
-                        if (
-                                result.intention_status == "unchanged"
-                                and result.reason_status == "unchanged"
-                        ):
-                            return result.final_query
-
-                        intention = result.intention
-
-                        messages.append({
-                            "role": "user",
-                            "content": (
-                                "The previous validation changed the intention or reason. "
-                                "Validate the corrected query again.\n\n"
-                                f"Current intention: {result.intention}\n"
-                                f"Current reason: {result.reason}\n"
-                                f"Current SQL query:\n{result.final_query}"
-                            ),
-                        })
-
-                        current_intention = result.intention
-                        current_reasons_list = result.reason
-                        current_query = result.final_query
-
-
-                    final_query =  sql_post_processing_component.llm_handler.get_answer_with_fallback(
-                        messages
+                    final_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
+                            verification_component_messages
                     ).final_query
 
                     sql_post_processing_component.logging_component.log(
-                        str(messages),
-                        verification_system_prompt,
-                        final_query,
+                            str(verification_component_messages),
+                            verification_system_prompt,
+                            final_query,
                     )
+
                     return final_query
 
         except Exception as e:
