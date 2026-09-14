@@ -69,7 +69,7 @@ class LLM:
             client = instructor.from_groq(
                 Groq(
                     api_key=self.api_key),
-                    mode=instructor.Mode.TOOLS,
+                    mode=instructor.Mode.JSON_SCHEMA,
             )
 
             print("msg from structured answer")
