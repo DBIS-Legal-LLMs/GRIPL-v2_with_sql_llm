@@ -62,14 +62,14 @@ class LLM:
 
         try:
 
-            messages = self._clean_for_structured_call(messages)
+
 
             # TODO: had problems with instructor.from_provider with groq , must be changed if not to groq
 
             client = instructor.from_groq(
                 Groq(
                     api_key=self.api_key),
-                    mode=instructor.Mode.JSON,
+                    mode=instructor.Mode.TOOLS,
             )
 
             print("msg from structured answer")

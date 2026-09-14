@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class SQLGenerationAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    query: str
+    query: str = Field(default="")
