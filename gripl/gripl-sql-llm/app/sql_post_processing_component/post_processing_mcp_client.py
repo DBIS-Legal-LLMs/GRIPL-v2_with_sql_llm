@@ -53,6 +53,8 @@ class PostProcessingMcpClient:
                     verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.verification_system_prompt_path)
 
+                    print("verification system prompt")
+                    print(verification_system_prompt)
                     verification_component_messages = [
                         {
                             "role": "system",
