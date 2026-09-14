@@ -97,7 +97,7 @@ class PostProcessingMcpClient:
 
                             verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
                                 messages=verification_component_messages,
-                                tool=groq_tools,
+                                tools=groq_tools,
                             )
 
                             verification_component_messages.append({
