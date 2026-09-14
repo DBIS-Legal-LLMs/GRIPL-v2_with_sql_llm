@@ -121,7 +121,7 @@ class PostProcessingMcpClient:
 
 
                             else:
-                                tools_messages = self.execute_tools_from_answer(
+                                tools_messages = await self.execute_tools_from_answer(
                                     verification_answer.tool_calls,
                                     session
                                 )
