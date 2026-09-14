@@ -29,10 +29,10 @@ class LLM:
             if not tools:
                 return self.get_structured_answer(messages)
 
-            client = instructor.from_provider(
-                model=self.model_name,
-                api_key=self.api_key,
-                mode=instructor.Mode.TOOLS,
+            client = instructor.from_groq(
+                Groq(
+                    api_key=self.api_key),
+                mode=instructor.Mode.JSON,
             )
 
             response = client.chat.completions.create(
