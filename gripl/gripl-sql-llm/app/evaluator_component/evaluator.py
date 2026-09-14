@@ -88,20 +88,20 @@ class Evaluator:
 
             test_data = {
                 "INTENTION_MODEL": [
-                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                     ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                 ],
                 "SQL_GENERATION_MODEL": [
-                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                     ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                 ],
                 "POST_PROCESSING_MODEL": [
-                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                     ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                 ],
                 "VERIFICATION_MODEL": [
-                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                     ("openai/gpt-oss-20b", "GROQ_API_KEY", ""),
+                    ("openai/gpt-oss-120b", "GROQ_API_KEY", ""),
                 ],
                 "EMBEDDING_MODEL": [
                     ("all-MiniLM-L6-v2", "", ""),

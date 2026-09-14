@@ -26,13 +26,14 @@ class LLM:
                             ):
         try:
 
+
             if not tools:
                 return self.get_structured_answer(messages)
 
             client = instructor.from_groq(
                 Groq(
                     api_key=self.api_key),
-                mode=instructor.Mode.JSON,
+
             )
 
             response = client.chat.completions.create(
@@ -49,10 +50,6 @@ class LLM:
             if message.tool_calls:
                 return message
 
-            messages.append({
-                "role": "assistant",
-                "content": message.content,
-            })
             return self.get_structured_answer(
                 messages,
             )
@@ -65,13 +62,18 @@ class LLM:
 
         try:
 
+            messages = self._clean_for_structured_call(messages)
+
             # TODO: had problems with instructor.from_provider with groq , must be changed if not to groq
 
             client = instructor.from_groq(
                 Groq(
                     api_key=self.api_key),
-                mode=instructor.Mode.JSON,
+                    mode=instructor.Mode.JSON,
             )
+
+            print("msg from structured answer")
+            print(messages)
 
             return client.create(
                 model=self.model_name,
@@ -90,3 +92,25 @@ class LLM:
         except Exception:
             print(traceback.format_exc())
             return []
+
+    def _clean_for_structured_call(self, messages: list) -> list:
+        """Entfernt Tool-Nachrichten und tool_calls, damit der structured Call
+        (response_model, Mode.JSON) eine reine system/user/assistant-History bekommt."""
+        cleaned = []
+        for m in messages:
+            role = m.get("role")
+
+            if role == "tool":
+                continue
+
+
+            if role == "assistant" and m.get("content") is None and m.get("tool_calls"):
+                continue
+
+
+            if role == "assistant" and "tool_calls" in m:
+                m = {k: v for k, v in m.items() if k != "tool_calls"}
+
+            cleaned.append(m)
+
+        return cleaned

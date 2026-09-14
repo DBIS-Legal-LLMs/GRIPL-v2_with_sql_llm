@@ -40,24 +40,18 @@ class PostProcessingMcpClient:
                     await session.initialize()
 
                     tools_result = await session.list_tools()
-
                     mcp_tools = tools_result.tools
 
                     current_intention = intentions[0]
-
                     current_query = generated_query
-
                     current_reasons_list = reasons_of_intentions
-
                     current_error_message = error_message
-
                     current_hint = ""
 
                     groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
 
                     verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.verification_system_prompt_path)
-
 
                     verification_component_messages = [
                         {
@@ -67,6 +61,9 @@ class PostProcessingMcpClient:
                     ]
 
                     for iteration in range(1, self.max_iteration + 1):
+
+                        messages_backup = list(verification_component_messages)
+
                         try:
 
                             current_query = sql_post_processing_component.current_post_processed_query(
@@ -88,49 +85,87 @@ class PostProcessingMcpClient:
                                 db_schema=db_schema,
                             )
 
-                            verification_component_messages.append(
-                                {
-                                    "role": "user",
-                                    "content": current_iteration_user_prompt,
-                                }
-                            )
 
-                            verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
-                                messages=verification_component_messages,
-                                tools=groq_tools,
-                            )
+                            verification_component_messages.append({
+                                "role": "user",
+                                "content": current_iteration_user_prompt,
+                            })
+
+
+                            verification_answer = None
+                            while True:
+                                verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
+                                    messages=verification_component_messages[:],
+                                    tools=groq_tools,
+                                )
+
+                                tool_calls = getattr(verification_answer, "tool_calls", None)
+
+                                if tool_calls:
+
+                                    verification_component_messages.append({
+                                        "role": "assistant",
+                                        "content": verification_answer.content,
+                                        "tool_calls": [
+                                            {
+                                                "id": tc.id,
+                                                "type": tc.type,
+                                                "function": {
+                                                    "name": tc.function.name,
+                                                    "arguments": tc.function.arguments,
+                                                },
+                                            }
+                                            for tc in tool_calls
+                                        ],
+                                    })
+
+                                    tools_messages = await self.execute_tools_from_answer(
+                                        tool_calls, session
+                                    )
+                                    verification_component_messages.extend(tools_messages)
+
+                                    continue
+
+
+                                break
+
 
                             verification_component_messages.append({
                                 "role": "assistant",
-                                "content": verification_answer.content,
+                                "content": verification_answer.model_dump_json(),
                             })
 
-                            if not verification_answer.tool_calls:
-                                if (
-                                        verification_answer.intention_status == "unchanged"
-                                        and verification_answer.reason_status == "unchanged"
-                                ):
-                                    return verification_answer.final_query
 
-                                current_intention = verification_answer.intention
-                                current_hint = verification_answer.reason
-                                current_query = verification_answer.final_query
-
-
-                            else:
-                                tools_messages = await self.execute_tools_from_answer(
-                                    verification_answer.tool_calls,
-                                    session
+                            if (
+                                    verification_answer.intention_status == "unchanged"
+                                    and verification_answer.reason_status == "unchanged"
+                            ):
+                                sql_post_processing_component.logging_component.log(
+                                    str(verification_component_messages),
+                                    verification_system_prompt,
+                                    verification_answer.final_query,
                                 )
-                                verification_component_messages.extend(tools_messages)
+                                return verification_answer.final_query
 
+                            current_intention = verification_answer.intention
+                            current_hint = verification_answer.reason
+                            current_query = verification_answer.final_query
 
-                        except Exception as e:
+                        except Exception:
                             print("error in one iteration")
                             print(traceback.format_exc())
+                            verification_component_messages = messages_backup
+                            continue
+
+
+                    while (
+                            verification_component_messages
+                            and verification_component_messages[-1]["role"] == "tool"
+                    ):
+                        verification_component_messages.pop()
 
                     final_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
-                        verification_component_messages
+                        verification_component_messages[:]
                     ).final_query
 
                     sql_post_processing_component.logging_component.log(
@@ -141,9 +176,10 @@ class PostProcessingMcpClient:
 
                     return final_query
 
-        except Exception as e:
+        except Exception:
             print("error in mcp client")
             print(traceback.format_exc())
+
 
     def convert_mcp_tool_list_to_groq_schema_tool_list(self, mcp_tools: list):
         groq_tools = []
@@ -211,7 +247,8 @@ class PostProcessingMcpClient:
                     "name": tool_name,
                     "content": tool_result_text,
                 })
-
+            print("tool msg")
+            print(tool_messages)
             return tool_messages
         except Exception as e:
             print("error in tool usage")
