@@ -76,14 +76,13 @@ FINAL OUTPUT
 
 After both validations are complete, return ONLY the following JSON object:
 
-{
-    "intention_status": "unchanged" | "changed",
+{{"intention_status": "unchanged" | "changed",
     "reason_status": "unchanged" | "changed",
     "intention": "<validated intention>",
     "reason": "<validated reason>",
     "explanation": "explanation why it is changed or not changed."
     "final_query": "<final SQL query>"
-}
+}}
 
 `intention_status`:
 - "unchanged" if the original intention was valid and appropriate.
