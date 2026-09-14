@@ -44,7 +44,7 @@ class SQLGenerator:
             system_prompt = self.prompt_management.fill_prompt(
                 self.system_prompt_path,
             )
-            
+
             messages = [
                 {
                     "role": "system",
