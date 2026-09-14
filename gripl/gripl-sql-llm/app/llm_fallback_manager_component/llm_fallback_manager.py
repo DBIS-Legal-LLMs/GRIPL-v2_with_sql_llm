@@ -52,10 +52,11 @@ class LLMFallBackManager:
                     continue
 
 
-            return {}
+            return self.schema_output
 
         except Exception as e:
             print(traceback.format_exc())
+            return self.schema_output
 
     def get_all_possible_llm_models_of_component(self, component_name: str) -> list:
 

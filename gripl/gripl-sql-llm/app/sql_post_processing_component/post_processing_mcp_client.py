@@ -148,7 +148,8 @@ class PostProcessingMcpClient:
                                 return verification_answer.final_query
 
                             current_intention = verification_answer.intention
-                            current_hint = verification_answer.reason
+                            current_reasons_list = [verification_answer.reason]
+                            current_hint = verification_answer.explanation
                             current_query = verification_answer.final_query
 
                         except Exception:
@@ -156,13 +157,6 @@ class PostProcessingMcpClient:
                             print(traceback.format_exc())
                             verification_component_messages = messages_backup
                             continue
-
-
-                    while (
-                            verification_component_messages
-                            and verification_component_messages[-1]["role"] == "tool"
-                    ):
-                        verification_component_messages.pop()
 
                     final_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
                         verification_component_messages[:]

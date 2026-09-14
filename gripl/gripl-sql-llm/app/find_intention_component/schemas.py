@@ -1,5 +1,5 @@
 from typing import List, Literal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class IntentionAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -13,4 +13,4 @@ class IntentionAnswer(BaseModel):
             "Deletion",
             "Access"
         ]
-    ]
+    ] = Field(default_factory=list)
