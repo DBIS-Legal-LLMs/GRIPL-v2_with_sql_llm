@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import json
 from app.find_intention_component.schemas import IntentionAnswer
 
-from pydantic_core._pydantic_core import ValidationError
 
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
@@ -104,7 +103,6 @@ class PostProcessingMcpClient:
                             verification_component_messages.append({
                                 "role": "assistant",
                                 "content": verification_answer.content,
-                                "tool_calls": verification_answer.tool_calls,
                             })
 
                             if not verification_answer.tool_calls:
@@ -210,6 +208,7 @@ class PostProcessingMcpClient:
                 tool_messages.append({
                     "role": "tool",
                     "tool_call_id": tool_call.id,
+                    "name": tool_name,
                     "content": tool_result_text,
                 })
 
