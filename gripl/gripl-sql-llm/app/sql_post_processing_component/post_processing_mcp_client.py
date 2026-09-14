@@ -80,7 +80,7 @@ class PostProcessingMcpClient:
                         }
                     ]
 
-                    for i in range(1, self.max_iteration + 1):
+                    for iteration in range(1, self.max_iteration + 1):
                         try:
 
                             current_query =  sql_post_processing_component.current_post_processed_query(
