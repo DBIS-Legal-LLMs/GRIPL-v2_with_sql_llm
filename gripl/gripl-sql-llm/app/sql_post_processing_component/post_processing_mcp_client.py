@@ -98,64 +98,30 @@ class PostProcessingMcpClient:
                                 tool=groq_tools,
                             )
 
-                            if verification_answer.tool_calls:
-                                for tool_call in verification_answer.tool_calls:
-                                    tool_name = tool_call.function.name
-                                    tool_args = json.loads(tool_call.function.arguments or "{}")
+                            verification_component_messages.append({
+                                "role": "assistant",
+                                "content": verification_answer.content,
+                                "tool_calls": verification_answer.tool_calls,
+                            })
 
-                                    mcp_result = await session.call_tool(tool_name, tool_args)
+                            if not verification_answer.tool_calls:
+                                if (
+                                        verification_answer.intention_status == "unchanged"
+                                        and verification_answer.reason_status == "unchanged"
+                                ):
+                                    return verification_answer.final_query
 
-                                    parts = []
-                                    for block in mcp_result.content:
-                                        text = getattr(block, "text", None)
-                                        if text is not None:
-                                            parts.append(text)
-                                        else:
-                                            parts.append(json.dumps(block.model_dump(), ensure_ascii=False))
-                                    tool_result_text = "\n".join(parts)
+                                current_intention = verification_answer.intention
+                                current_hint = verification_answer.reason
+                                current_query = verification_answer.final_query
 
-
-                                    verification_component_messages.append({
-                                        "role": "tool",
-                                        "tool_call_id": tool_call.id,
-                                        "content": tool_result_text,
-                                    })
-
-                            result = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
-                                messages=verification_component_messages,
-                                tool=groq_tools,
+                            tools_messages =  self.execute_tools_from_answer(
+                                verification_answer.tool_calls,
+                                session
                             )
 
-                            if not result.tool_calls:
-                                sql_post_processing_component.logging_component.log(
-                                    str(verification_component_messages),
-                                    verification_system_prompt,
-                                    result,
-                                )
+                            verification_component_messages.extend(tools_messages)
 
-                                if (
-                                        result.intention_status == "unchanged"
-                                        and result.reason_status == "unchanged"
-                                ):
-                                    return result.final_query
-
-                                intention = result.intention
-
-                                verification_component_messages.append({
-                                    "role": "user",
-                                    "content": (
-                                        "The previous validation changed the intention or reason. "
-                                        "Validate the corrected query again.\n\n"
-                                        f"Current intention: {result.intention}\n"
-                                        f"Current reason: {result.reason}\n"
-                                        f"Current SQL query:\n{result.final_query}"
-                                    ),
-                                })
-
-                                current_intention = result.intention
-                                current_reasons_list = result.reason
-                                current_query = result.final_query
-                                current_hint = result.explanation
 
                         except Exception as e:
                             print("error in one iteration")
@@ -213,3 +179,38 @@ class PostProcessingMcpClient:
                 }
             })
         return groq_tools
+
+    async def execute_tools_from_answer(self, tools: list,
+                                        session
+                                        ):
+
+        try:
+
+            tool_messages = []
+
+            for tool_call in tools:
+                tool_name = tool_call.function.name
+                tool_args = json.loads(tool_call.function.arguments or "{}")
+
+                mcp_result = await session.call_tool(tool_name, tool_args)
+
+                parts = []
+                for block in mcp_result.content:
+                    text = getattr(block, "text", None)
+                    if text is not None:
+                        parts.append(text)
+                    else:
+                        parts.append(json.dumps(block.model_dump(), ensure_ascii=False))
+                tool_result_text = "\n".join(parts)
+
+                tool_messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": tool_result_text,
+                })
+
+            return tool_messages
+        except Exception as e:
+            print("error in tool usage")
+            print(traceback.format_exc())
+            return []
