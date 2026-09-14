@@ -17,7 +17,6 @@ import os
 load_dotenv()
 
 
-
 class PostProcessingMcpClient:
 
     def __init__(self):
@@ -57,15 +56,6 @@ class PostProcessingMcpClient:
 
                     groq_tools = self.convert_mcp_tool_list_to_groq_schema_tool_list(mcp_tools)
 
-                    verification_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
-                        sql_post_processing_component.verification_user_prompt_path,
-                        activity_field=activity_field,
-                        intention=current_intention,
-                        generated_query=current_query,
-                        reasons_of_intentions=current_reasons_list,
-                        db_schema=db_schema,
-                    )
-
                     verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.verification_system_prompt_path)
 
@@ -74,16 +64,12 @@ class PostProcessingMcpClient:
                             "role": "system",
                             "content": verification_system_prompt,
                         },
-                        {
-                            "role": "user",
-                            "content": verification_user_prompt,
-                        }
                     ]
 
                     for iteration in range(1, self.max_iteration + 1):
                         try:
 
-                            current_query =  sql_post_processing_component.current_post_processed_query(
+                            current_query = sql_post_processing_component.current_post_processed_query(
                                 db_schema=db_schema,
                                 activity_field=activity_field,
                                 generated_query=current_query,
@@ -91,6 +77,22 @@ class PostProcessingMcpClient:
                                 intentions=current_intention,
                                 reasons_of_intentions=current_reasons_list,
                                 hint=current_hint,
+                            )
+
+                            current_iteration_user_prompt = sql_post_processing_component.prompt_management.fill_prompt(
+                                sql_post_processing_component.verification_user_prompt_path,
+                                activity_field=activity_field,
+                                intention=current_intention,
+                                generated_query=current_query,
+                                reasons_of_intentions=current_reasons_list,
+                                db_schema=db_schema,
+                            )
+
+                            verification_component_messages.append(
+                                {
+                                    "role": "user",
+                                    "content": current_iteration_user_prompt,
+                                }
                             )
 
                             verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
@@ -115,12 +117,13 @@ class PostProcessingMcpClient:
                                 current_hint = verification_answer.reason
                                 current_query = verification_answer.final_query
 
-                            tools_messages =  self.execute_tools_from_answer(
-                                verification_answer.tool_calls,
-                                session
-                            )
 
-                            verification_component_messages.extend(tools_messages)
+                            else:
+                                tools_messages = self.execute_tools_from_answer(
+                                    verification_answer.tool_calls,
+                                    session
+                                )
+                                verification_component_messages.extend(tools_messages)
 
 
                         except Exception as e:
@@ -128,13 +131,13 @@ class PostProcessingMcpClient:
                             print(traceback.format_exc())
 
                     final_query = sql_post_processing_component.llm_handler.get_answer_with_fallback(
-                            verification_component_messages
+                        verification_component_messages
                     ).final_query
 
                     sql_post_processing_component.logging_component.log(
-                            str(verification_component_messages),
-                            verification_system_prompt,
-                            final_query,
+                        str(verification_component_messages),
+                        verification_system_prompt,
+                        final_query,
                     )
 
                     return final_query
