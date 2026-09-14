@@ -17,4 +17,6 @@ class PromptManagement:
         try:
             return raw_prompt.format(**kwargs)
         except KeyError as e:
+            print("error in schema formating")
+            print(e)
             return ""

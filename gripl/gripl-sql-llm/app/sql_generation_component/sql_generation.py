@@ -45,6 +45,9 @@ class SQLGenerator:
                 self.system_prompt_path,
             )
 
+            print("system prompt sql gen")
+            print(system_prompt)
+
             messages = [
                 {
                     "role": "system",

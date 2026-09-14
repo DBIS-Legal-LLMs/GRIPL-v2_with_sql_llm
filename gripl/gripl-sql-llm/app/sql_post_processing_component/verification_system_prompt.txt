@@ -80,7 +80,7 @@ After both validations are complete, return ONLY the following JSON object:
     "reason_status": "unchanged" | "changed",
     "intention": "<validated intention>",
     "reason": "<validated reason>",
-    "explanation": "explanation why it is changed or not changed."
+    "explanation": "<explanation why it changed or not changed and hints for the next time for correction>"
     "final_query": "<final SQL query>"
 }}
 
@@ -92,6 +92,7 @@ After both validations are complete, return ONLY the following JSON object:
 - "unchanged" if the original reason was valid and appropriate.
 - "changed" if the original reason was invalid and had to be replaced.
 
+The `explanation`: Why it was false and hints to improve it.
 The `intention` field MUST contain the final validated intention.
 The `reason` field MUST contain the final validated reason.
 The `final_query` field MUST contain the final SQL query.
