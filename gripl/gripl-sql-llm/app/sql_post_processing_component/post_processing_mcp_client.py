@@ -136,21 +136,22 @@ class PostProcessingMcpClient:
                                 "content": verification_answer.model_dump_json(),
                             })
 
-                            if (isinstance(verification_answer, SQLVerificationResultAnswer) and
-                                    verification_answer.intention_status == "unchanged"
-                                    and verification_answer.reason_status == "unchanged"
-                            ):
-                                sql_post_processing_component.logging_component.log(
-                                    str(verification_component_messages),
-                                    verification_system_prompt,
-                                    verification_answer.final_query,
-                                )
-                                return verification_answer.final_query
+                            if isinstance(verification_answer, SQLVerificationResultAnswer):
 
-                            current_intention = verification_answer.intention
-                            current_reasons_list = [verification_answer.reason]
-                            current_hint = verification_answer.explanation
-                            current_query = verification_answer.final_query
+                                if (verification_answer.intention_status == "unchanged"
+                                    and verification_answer.reason_status == "unchanged"):
+
+                                        sql_post_processing_component.logging_component.log(
+                                            str(verification_component_messages),
+                                            verification_system_prompt,
+                                            verification_answer.final_query,
+                                        )
+                                        return verification_answer.final_query
+
+                                current_intention = verification_answer.intention
+                                current_reasons_list = [verification_answer.reason]
+                                current_hint = verification_answer.explanation
+                                current_query = verification_answer.final_query
 
                         except Exception:
                             print("error in one iteration")
