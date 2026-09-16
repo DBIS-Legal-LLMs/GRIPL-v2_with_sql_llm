@@ -3,7 +3,6 @@ from typing import Type
 from pydantic import BaseModel
 from app.llm_component.llm import LLM
 from app.sql_execution_component.sql_execution import SQLExecution
-from app.llm_component.llm import LLM
 from dotenv import load_dotenv
 import os
 from tenacity import (
@@ -38,12 +37,13 @@ class LLMFallBackManager:
 
             models_env_api_key_list = self.get_all_possible_llm_models_of_component(self.llm_component_name)
 
-            for model, env_api_key_name in models_env_api_key_list:
+            for model, env_api_key_name, model_url in models_env_api_key_list:
                 try:
                     return self.get_answer_from_current_llm(
                         messages=messages,
                         tools=tools,
                         model_name=model,
+                        model_url=model_url,
                         api_key_env_name=env_api_key_name,
                     )
 
@@ -65,13 +65,17 @@ class LLMFallBackManager:
             sql = f"""
                     SELECT
                                                                             name,
-                                                                            env_api_key_name
+                                                                            env_api_key_name, 
+                                                                            model_url
                                                                         FROM fallback_llm
                                                                         WHERE corresponding_comment = '{component_name}'
                                                                         ORDER BY "order" ASC;
             """
 
-            return  [(execution_result.get("name", ""), execution_result.get("env_api_key_name", "")) for execution_result in
+            return [(execution_result.get("name", ""),
+                     execution_result.get("env_api_key_name", ""),
+                     execution_result.get("model_url", "")
+                     ) for execution_result in
                     self.sql_execution_component.get_sql_query_results(sql)]
 
 
@@ -89,6 +93,7 @@ class LLMFallBackManager:
     def get_answer_from_current_llm(self,
                                     messages: list,
                                     model_name: str,
+                                    model_url: str,
                                     api_key_env_name: str,
                                     tools: list | None = None,
                                     ):
@@ -96,7 +101,7 @@ class LLMFallBackManager:
 
             llm = LLM(
                 model_name=model_name,
-                model_url="",
+                model_url=model_url,
                 api_key=os.getenv(api_key_env_name),
                 schema_output=self.schema_output
             )

@@ -113,3 +113,25 @@ class LLM:
             cleaned.append(m)
 
         return cleaned
+
+    def get_answer_open_router_based(self,
+                                     messages: list
+                                     ):
+
+        try:
+
+            client = instructor.from_provider(
+                self.model_name,
+                base_url=self.model_url,
+
+            )
+
+            resp = client.create(
+                messages=messages,
+                response_model=self.schema_output,
+            )
+
+        except Exception:
+            print("error in open router answer")
+            print(traceback.format_exc())
+
