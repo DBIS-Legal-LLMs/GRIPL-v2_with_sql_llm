@@ -53,8 +53,6 @@ class PostProcessingMcpClient:
                     verification_system_prompt = sql_post_processing_component.prompt_management.fill_prompt(
                         sql_post_processing_component.verification_system_prompt_path)
 
-                    print("verification system prompt")
-                    print(verification_system_prompt)
                     verification_component_messages = [
                         {
                             "role": "system",
@@ -94,8 +92,8 @@ class PostProcessingMcpClient:
                             })
 
 
-                            verification_answer = None
-                            while True:
+
+                            for i in range(1, self.max_iteration + 1):
                                 verification_answer = sql_post_processing_component.verification_llm_handler.get_answer_with_fallback(
                                     messages=verification_component_messages[:],
                                     tools=groq_tools,
@@ -131,12 +129,12 @@ class PostProcessingMcpClient:
 
                                 break
 
-
+                            print("verification answer ")
+                            print(verification_answer)
                             verification_component_messages.append({
                                 "role": "assistant",
                                 "content": verification_answer.model_dump_json(),
                             })
-
 
                             if (
                                     verification_answer.intention_status == "unchanged"
@@ -243,8 +241,7 @@ class PostProcessingMcpClient:
                     "name": tool_name,
                     "content": tool_result_text,
                 })
-            print("tool msg")
-            print(tool_messages)
+
             return tool_messages
         except Exception as e:
             print("error in tool usage")

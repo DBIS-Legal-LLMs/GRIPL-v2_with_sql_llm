@@ -1,0 +1,1792 @@
+system_prompt,user_prompt,output
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-87E2518C-79DE-403D-8A33-010389B828A6"" isForCompensation=""false"" name=""Give medicaments"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-C0B2452C-642A-4C03-844C-2D61E7388CD1</ns0:incoming>
+         <ns0:outgoing>sid-EE042B87-8B0F-4624-A3C3-478A63F1DAFF</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Usage' AND reason.reason = 'Uses personal data – processes data for operational, analytical, or business purposes.'
+
+Error:
+
+
+Intent:
+U
+
+Reason of Intent:
+Uses personal data – processes data for operational, analytical, or business purposes.,ses personal data – processes data for operational, analytical, or business purposes.,Uses personal data – processes data for operational, analytical, or business purposes
+,Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or the organization has a contact person.,Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or a n organization with a contact person. If the customer is a natural person or a n organization with a contact person.,Uses personal data – processes data for operational, analytical, or business purposes,Uses personal data (to decide medication), Stores personal data (in medical records),Uses personal data – processes data for operational, analytical, or business purposes.
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Usage' AND reason.reason = 'Uses personal data – processes data for operational, analytical, or business purposes.'"
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-87E2518C-79DE-403D-8A33-010389B828A6"" isForCompensation=""false"" name=""Give medicaments"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-C0B2452C-642A-4C03-844C-2D61E7388CD1</ns0:incoming>\n         <ns0:outgoing>sid-EE042B87-8B0F-4624-A3C3-478A63F1DAFF</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nUsage\n\nCurrent reasons:\n[\'Uses personal data – processes data for operational, analytical, or business purposes.\', \'ses personal data – processes data for operational, analytical, or business purposes.\', \'Uses personal data – processes data for operational, analytical, or business purposes\\n\', \'Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or the organization has a contact person.\', \'Uses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or a n organization with a contact person. If the customer is a natural person or a n organization with a contact person.\', \'Uses personal data – processes data for operational, analytical, or business purposes\', \'Uses personal data (to decide medication), Stores personal data (in medical records)\', \'Uses personal data – processes data for operational, analytical, or business purposes.\\nCollects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Usage\' AND reason.reason = \'Uses personal data – processes data for operational, analytical, or business purposes.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_0c2a2d84-8039-430f-bfee-2137d2ca1ca1', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_0c2a2d84-8039-430f-bfee-2137d2ca1ca1', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_c5f6f1cd-3bbe-41b7-904d-8a379d1b621f', 'type': 'function', 'function': {'name': 'get_all_reasons_of_category', 'arguments': '{""category_name"":""Usage""}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_c5f6f1cd-3bbe-41b7-904d-8a379d1b621f', 'name': 'get_all_reasons_of_category', 'content': 'Uses personal data – processes data for operational, analytical, or business purposes.\nses personal data – processes data for operational, analytical, or business purposes.\nUses personal data – processes data for operational, analytical, or business purposes\n\nUses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or the organization has a contact person.\nUses personal data – processes data for operational, analytical, or business purposes. If the customer is a natural person or a n organization with a contact person. If the customer is a natural person or a n organization with a contact person.\nUses personal data – processes data for operational, analytical, or business purposes\nUses personal data (to decide medication), Stores personal data (in medical records)\nUses personal data – processes data for operational, analytical, or business purposes.\nCollects personal health data – gathers health information about natural persons.'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Usage"",""reason"":""Uses personal data – processes data for operational, analytical, or business purposes."",""explanation"":""The intention \'Usage\' semantically matches the activity field \'Give medicaments\' (the action refers to medication usage) and corresponds to an existing category name in the schema. Since it cannot be proven absent from the provided list of intentions, it is left unchanged. The reason string is present in the supplied list and aligns with the activity, so it remains unchanged. The SQL query correctly joins the tables and filters on the intended category and reason, so no changes are required."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Usage\' AND reason.reason = \'Uses personal data – processes data for operational, analytical, or business purposes.\'""}'}]","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Usage' AND reason.reason = 'Uses personal data – processes data for operational, analytical, or business purposes.'"
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-8018CC06-69E9-4E62-977B-E441C039AEF0"" isForCompensation=""false"" name=""Perform colonoskopy"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-8DC9160B-2D71-4527-88F1-5AE548CEF0A7</ns0:incoming>
+         <ns0:outgoing>sid-1D05D223-8864-4640-B8CF-0C4A48100E20</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.';
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal data – gathers information about natural persons., Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule),Collects personal data – gathers information about natural persons (e.g., name, email).,Collects personal data – gathers information about natural persons (speech).,Collects personal health data – gathers health information about natural persons.,Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc,Uses personal data – processes data for operational, analytical, or business purposes.
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.';
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-8018CC06-69E9-4E62-977B-E441C039AEF0"" isForCompensation=""false"" name=""Perform colonoskopy"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-8DC9160B-2D71-4527-88F1-5AE548CEF0A7</ns0:incoming>\n         <ns0:outgoing>sid-1D05D223-8864-4640-B8CF-0C4A48100E20</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollection\n\nCurrent reasons:\n[\'Collects personal data – gathers information about natural persons.\', \' Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule)\', \'Collects personal data – gathers information about natural persons (e.g., name, email).\', \'Collects personal data – gathers information about natural persons (speech).\', \'Collects personal health data – gathers health information about natural persons.\', \'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc\', \'Uses personal data – processes data for operational, analytical, or business purposes.\\nCollects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\';'}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_5ff457df-494a-47f9-97d8-584657ebe306', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_5ff457df-494a-47f9-97d8-584657ebe306', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Collection"",""reason"":""Collects personal data – gathers information about natural persons."",""explanation"":""The intention \'Collection\' and the reason both exist in the provided lists and are relevant to the activity of performing a colonoscopy, which involves collecting patient data. No changes were needed."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\';""}'}]",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.';
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-5DA96990-76B4-40D0-88B6-915685E7E279"" isForCompensation=""false"" name=""Check electrolytes"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-1D05D223-8864-4640-B8CF-0C4A48100E20</ns0:incoming>
+         <ns0:outgoing>sid-399D5DD9-C1BD-4168-9315-931688E06B7C</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems';
+
+Error:
+
+
+Intent:
+A
+
+Reason of Intent:
+Stores personal data – saves information in databases, systems, or files.
+Accesses personal data – retrieves or makes data available to users or systems.,Accesses personal data – retrieves or makes data available to users or systems,Accesses personal data – retrieves or makes data available to users or systems.,ccesses personal data – retrieves or makes data available to users or systems.,Needs access to patients medical test results which include personal medical data,Access customer's financial data,Precise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.
+
+Hint:
+",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems'
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-5DA96990-76B4-40D0-88B6-915685E7E279"" isForCompensation=""false"" name=""Check electrolytes"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-1D05D223-8864-4640-B8CF-0C4A48100E20</ns0:incoming>\n         <ns0:outgoing>sid-399D5DD9-C1BD-4168-9315-931688E06B7C</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nAccess\n\nCurrent reasons:\n[\'Stores personal data – saves information in databases, systems, or files.\\nAccesses personal data – retrieves or makes data available to users or systems.\', \'Accesses personal data – retrieves or makes data available to users or systems\', \'Accesses personal data – retrieves or makes data available to users or systems.\', \'ccesses personal data – retrieves or makes data available to users or systems.\', \'Needs access to patients medical test results which include personal medical data\', ""Access customer\'s financial data"", \'Precise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Access\' AND reason.reason = \'Accesses personal data – retrieves or makes data available to users or systems\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_70224df4-e8b0-43a0-8c6c-2a2c8237505f', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_70224df4-e8b0-43a0-8c6c-2a2c8237505f', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_80c44128-3895-4a29-b806-3e3894d81493', 'type': 'function', 'function': {'name': 'get_all_reasons_of_category', 'arguments': '{""category_name"":""Access""}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_80c44128-3895-4a29-b806-3e3894d81493', 'name': 'get_all_reasons_of_category', 'content': ""Stores personal data – saves information in databases, systems, or files.\nAccesses personal data – retrieves or makes data available to users or systems.\nAccesses personal data – retrieves or makes data available to users or systems\nAccesses personal data – retrieves or makes data available to users or systems.\nccesses personal data – retrieves or makes data available to users or systems.\nNeeds access to patients medical test results which include personal medical data\nAccess customer's financial data\nPrecise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.""}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Access"",""reason"":""Accesses personal data – retrieves or makes data available to users or systems"",""explanation"":""The current intention \'Access\' and reason match the activity \'Check electrolytes\' by implying data retrieval, and the provided reason string exists in the reason list. Without the full list of available intentions and reasons, we cannot determine if they are missing from the allowed sets, so we assume they are valid. The SQL query correctly selects the reason matching the category and reason name, and no schema violations are detected."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Access\' AND reason.reason = \'Accesses personal data – retrieves or makes data available to users or systems\'""}'}]",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B"" isForCompensation=""false"" name=""Enter patient into surgery board"" startQuantity=""1"">
+         <ns0:documentation id=""sid-de67e42b-56d7-449f-bdad-5487986ac6ed"">At the latest 1 day before surgery at 2pm.</ns0:documentation>
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            <ns1:signavioMetaData metaKey=""maximumduration"" metaValue=""5 minutes"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:incoming>
+         <ns0:outgoing>sid-DBB7315F-6597-4036-8DA7-5C00A3C2EDBD</ns0:outgoing>
+         <ns0:ioSpecification id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_iospec"">
+            <ns0:dataInput id=""sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2"" />
+            <ns0:inputSet id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_inset"" name=""DefaultInputSet"">
+               <ns0:dataInputRefs>sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2</ns0:dataInputRefs>
+               <ns0:outputSetRefs>sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_outset</ns0:outputSetRefs>
+            </ns0:inputSet>
+            <ns0:outputSet id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_outset"" name=""DefaultOutputSet"">
+               <ns0:inputSetRefs>sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_inset</ns0:inputSetRefs>
+            </ns0:outputSet>
+         </ns0:ioSpecification>
+         <ns0:dataInputAssociation id=""sid-24A9896A-6B5D-4CE8-A9AC-1404CBC91C92"">
+            <ns0:extensionElements>
+               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            </ns0:extensionElements>
+            <ns0:sourceRef>sid-90A259E8-4546-4401-85D0-04488CD747A2</ns0:sourceRef>
+            <ns0:targetRef>sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2</ns0:targetRef>
+         </ns0:dataInputAssociation>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Storage' AND reason.reason = 'Stores personal data – saves information in databases, systems, or files.'
+
+Error:
+
+
+Intent:
+S
+
+Reason of Intent:
+Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Stores personal data – saves information in databases, systems, or files., Stores personal data – saves information in databases, systems, or files.,Stores personal data – saves information in databases, systems, or files.
+    ,Stores personal data – saves information in databases, systems, or files.
+Accesses personal data – retrieves or makes data available to users or systems.,Storage of personal employment related data,Stores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.,Uses personal data (to decide medication), Stores personal data (in medical records)
+
+Hint:
+","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Storage' AND reason.reason = 'Stores personal data – saves information in databases, systems, or files.'"
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B"" isForCompensation=""false"" name=""Enter patient into surgery board"" startQuantity=""1"">\n         <ns0:documentation id=""sid-de67e42b-56d7-449f-bdad-5487986ac6ed"">At the latest 1 day before surgery at 2pm.</ns0:documentation>\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            <ns1:signavioMetaData metaKey=""maximumduration"" metaValue=""5 minutes"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:incoming>\n         <ns0:outgoing>sid-DBB7315F-6597-4036-8DA7-5C00A3C2EDBD</ns0:outgoing>\n         <ns0:ioSpecification id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_iospec"">\n            <ns0:dataInput id=""sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2"" />\n            <ns0:inputSet id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_inset"" name=""DefaultInputSet"">\n               <ns0:dataInputRefs>sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2</ns0:dataInputRefs>\n               <ns0:outputSetRefs>sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_outset</ns0:outputSetRefs>\n            </ns0:inputSet>\n            <ns0:outputSet id=""sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_outset"" name=""DefaultOutputSet"">\n               <ns0:inputSetRefs>sid-97A5C3AA-D6BB-4803-A0AC-D63762A3A69B_inset</ns0:inputSetRefs>\n            </ns0:outputSet>\n         </ns0:ioSpecification>\n         <ns0:dataInputAssociation id=""sid-24A9896A-6B5D-4CE8-A9AC-1404CBC91C92"">\n            <ns0:extensionElements>\n               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            </ns0:extensionElements>\n            <ns0:sourceRef>sid-90A259E8-4546-4401-85D0-04488CD747A2</ns0:sourceRef>\n            <ns0:targetRef>sid-0663d890-0d66-4cfc-b927-be1ab5dbc1a2</ns0:targetRef>\n         </ns0:dataInputAssociation>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nStorage\n\nCurrent reasons:\n[\'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Stores personal data – saves information in databases, systems, or files.\', \' Stores personal data – saves information in databases, systems, or files.\', \'Stores personal data – saves information in databases, systems, or files.\\n    \', \'Stores personal data – saves information in databases, systems, or files.\\nAccesses personal data – retrieves or makes data available to users or systems.\', \'Storage of personal employment related data\', \'Stores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.\', \'Uses personal data (to decide medication), Stores personal data (in medical records)\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Storage\' AND reason.reason = \'Stores personal data – saves information in databases, systems, or files.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_65cf3415-6101-449b-b806-53736808d00e', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_65cf3415-6101-449b-b806-53736808d00e', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_4b93b57a-4f0a-4d77-9052-707dc4dcea87', 'type': 'function', 'function': {'name': 'get_all_reasons_of_category', 'arguments': '{""category_name"":""Storage""}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_4b93b57a-4f0a-4d77-9052-707dc4dcea87', 'name': 'get_all_reasons_of_category', 'content': 'Collects personal health data – gathers health information about natural persons.\nStores personal data – saves information in databases, systems, or files.\nStores personal data – saves information in databases, systems, or files.\n Stores personal data – saves information in databases, systems, or files.\nStores personal data – saves information in databases, systems, or files.\n    \nStores personal data – saves information in databases, systems, or files.\nAccesses personal data – retrieves or makes data available to users or systems.\nStorage of personal employment related data\nStores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.\nUses personal data (to decide medication), Stores personal data (in medical records)'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Storage"",""reason"":""Stores personal data – saves information in databases, systems, or files."",""explanation"":""The intention \'Storage\' appropriately describes the activity of entering patient information into a system, and the reason matches the provided list and fits the context. The SQL query correctly retrieves the reason for the given category and reason text, so no changes are needed."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Storage\' AND reason.reason = \'Stores personal data – saves information in databases, systems, or files.\'""}'}]","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Storage' AND reason.reason = 'Stores personal data – saves information in databases, systems, or files.'"
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-D0309BAA-2BC7-4866-BD2B-36789C42198D"" isForCompensation=""false"" name=""Collect and evaluate all results"" startQuantity=""1"">
+         <ns0:documentation id=""sid-16a5d3b7-99cd-4ea5-921f-5abc84f72d60"">At the latest 3 days before surgery</ns0:documentation>
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-3ACAC253-2D7B-435B-BCC0-EA8B4B04FF61</ns0:incoming>
+         <ns0:outgoing>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.';
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal data – gathers information about natural persons., Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule),Collects personal data – gathers information about natural persons (e.g., name, email).,Collects personal data – gathers information about natural persons (speech).,Collects personal health data – gathers health information about natural persons.,Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc,Uses personal data – processes data for operational, analytical, or business purposes.
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-D0309BAA-2BC7-4866-BD2B-36789C42198D"" isForCompensation=""false"" name=""Collect and evaluate all results"" startQuantity=""1"">
+         <ns0:documentation id=""sid-16a5d3b7-99cd-4ea5-921f-5abc84f72d60"">At the latest 3 days before surgery</ns0:documentation>
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-3ACAC253-2D7B-435B-BCC0-EA8B4B04FF61</ns0:incoming>
+         <ns0:outgoing>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal data – gathers information about natural persons.
+
+Hint:
+The intention ""Collection"" was not verified against an explicit list of available intentions, so it was marked as changed even though the current value was retained. The reason ""Collects personal data – gathers information about natural persons."" exists in the provided list and is appropriate for the activity, so no change was needed. The SQL query correctly selects the reason for the category ""Collection"", so it remains unchanged.",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-D0309BAA-2BC7-4866-BD2B-36789C42198D"" isForCompensation=""false"" name=""Collect and evaluate all results"" startQuantity=""1"">\n         <ns0:documentation id=""sid-16a5d3b7-99cd-4ea5-921f-5abc84f72d60"">At the latest 3 days before surgery</ns0:documentation>\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-3ACAC253-2D7B-435B-BCC0-EA8B4B04FF61</ns0:incoming>\n         <ns0:outgoing>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollection\n\nCurrent reasons:\n[\'Collects personal data – gathers information about natural persons.\', \' Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule)\', \'Collects personal data – gathers information about natural persons (e.g., name, email).\', \'Collects personal data – gathers information about natural persons (speech).\', \'Collects personal health data – gathers health information about natural persons.\', \'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc\', \'Uses personal data – processes data for operational, analytical, or business purposes.\\nCollects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_5b9e281c-f1cc-4e04-b8b2-29df8ae85a87', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_5b9e281c-f1cc-4e04-b8b2-29df8ae85a87', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""changed"",""reason_status"":""unchanged"",""intention"":""Collection"",""reason"":""Collects personal data – gathers information about natural persons."",""explanation"":""The intention \\""Collection\\"" was not verified against an explicit list of available intentions, so it was marked as changed even though the current value was retained. The reason \\""Collects personal data – gathers information about natural persons.\\"" exists in the provided list and is appropriate for the activity, so no change was needed. The SQL query correctly selects the reason for the category \\""Collection\\"", so it remains unchanged."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\'""}'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-D0309BAA-2BC7-4866-BD2B-36789C42198D"" isForCompensation=""false"" name=""Collect and evaluate all results"" startQuantity=""1"">\n         <ns0:documentation id=""sid-16a5d3b7-99cd-4ea5-921f-5abc84f72d60"">At the latest 3 days before surgery</ns0:documentation>\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-3ACAC253-2D7B-435B-BCC0-EA8B4B04FF61</ns0:incoming>\n         <ns0:outgoing>sid-6B83E151-942B-4B80-871C-0800A0861ADF</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollection\n\nCurrent reasons:\n[\'Collects personal data – gathers information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_dbc49313-b665-4676-897c-a1ec20232b14', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_dbc49313-b665-4676-897c-a1ec20232b14', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Collection"",""reason"":""Collects personal data – gathers information about natural persons."",""explanation"":""The intention \\""Collection\\"" cannot be confirmed as valid because the list of available intentions was not provided, so it is retained. The sole reason listed matches the activity field and the intention, so no change is needed. The SQL query correctly retrieves that reason for the category \\""Collection\\"" and is therefore left unchanged."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\'""}'}]",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA"" isForCompensation=""false"" name=""Enter surgery into Oplus for surgery plan"" startQuantity=""1"">
+         <ns0:documentation id=""sid-4c1d59b9-0919-46fc-9de5-f4393e126d3c"">At the latest 1 day before surgery at 2pm.</ns0:documentation>
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            <ns1:signavioMetaData metaKey=""maximumduration"" metaValue=""5 minutes"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-DBB7315F-6597-4036-8DA7-5C00A3C2EDBD</ns0:incoming>
+         <ns0:outgoing>sid-0F47650C-F0FF-4F89-95D7-CB383C3002E3</ns0:outgoing>
+         <ns0:ioSpecification id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_iospec"">
+            <ns0:dataInput id=""sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51"" />
+            <ns0:inputSet id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_inset"" name=""DefaultInputSet"">
+               <ns0:dataInputRefs>sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51</ns0:dataInputRefs>
+               <ns0:outputSetRefs>sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_outset</ns0:outputSetRefs>
+            </ns0:inputSet>
+            <ns0:outputSet id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_outset"" name=""DefaultOutputSet"">
+               <ns0:inputSetRefs>sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_inset</ns0:inputSetRefs>
+            </ns0:outputSet>
+         </ns0:ioSpecification>
+         <ns0:dataInputAssociation id=""sid-A250C862-69F5-4017-9512-4B14D0330399"">
+            <ns0:extensionElements>
+               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            </ns0:extensionElements>
+            <ns0:sourceRef>sid-90A259E8-4546-4401-85D0-04488CD747A2</ns0:sourceRef>
+            <ns0:targetRef>sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51</ns0:targetRef>
+         </ns0:dataInputAssociation>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason
+FROM category
+JOIN category_reason_association ON category.id = category_reason_association.category_id
+JOIN reason ON category_reason_association.reason_id = reason.id
+WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal data – gathers information about natural persons., Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule),Collects personal data – gathers information about natural persons (e.g., name, email).,Collects personal data – gathers information about natural persons (speech).,Collects personal health data – gathers health information about natural persons.,Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc,Uses personal data – processes data for operational, analytical, or business purposes.
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+","SELECT reason.reason
+FROM category
+JOIN category_reason_association ON category.id = category_reason_association.category_id
+JOIN reason ON category_reason_association.reason_id = reason.id
+WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'"
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA"" isForCompensation=""false"" name=""Enter surgery into Oplus for surgery plan"" startQuantity=""1"">\n         <ns0:documentation id=""sid-4c1d59b9-0919-46fc-9de5-f4393e126d3c"">At the latest 1 day before surgery at 2pm.</ns0:documentation>\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            <ns1:signavioMetaData metaKey=""maximumduration"" metaValue=""5 minutes"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-DBB7315F-6597-4036-8DA7-5C00A3C2EDBD</ns0:incoming>\n         <ns0:outgoing>sid-0F47650C-F0FF-4F89-95D7-CB383C3002E3</ns0:outgoing>\n         <ns0:ioSpecification id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_iospec"">\n            <ns0:dataInput id=""sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51"" />\n            <ns0:inputSet id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_inset"" name=""DefaultInputSet"">\n               <ns0:dataInputRefs>sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51</ns0:dataInputRefs>\n               <ns0:outputSetRefs>sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_outset</ns0:outputSetRefs>\n            </ns0:inputSet>\n            <ns0:outputSet id=""sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_outset"" name=""DefaultOutputSet"">\n               <ns0:inputSetRefs>sid-857018B9-BAD3-4C01-903B-0A1CFA8E00EA_inset</ns0:inputSetRefs>\n            </ns0:outputSet>\n         </ns0:ioSpecification>\n         <ns0:dataInputAssociation id=""sid-A250C862-69F5-4017-9512-4B14D0330399"">\n            <ns0:extensionElements>\n               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            </ns0:extensionElements>\n            <ns0:sourceRef>sid-90A259E8-4546-4401-85D0-04488CD747A2</ns0:sourceRef>\n            <ns0:targetRef>sid-427be0ae-2e02-4b88-8faa-c7a6341d5c51</ns0:targetRef>\n         </ns0:dataInputAssociation>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollection\n\nCurrent reasons:\n[\'Collects personal data – gathers information about natural persons.\', \' Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule)\', \'Collects personal data – gathers information about natural persons (e.g., name, email).\', \'Collects personal data – gathers information about natural persons (speech).\', \'Collects personal health data – gathers health information about natural persons.\', \'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc\', \'Uses personal data – processes data for operational, analytical, or business purposes.\\nCollects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason\nFROM category\nJOIN category_reason_association ON category.id = category_reason_association.category_id\nJOIN reason ON category_reason_association.reason_id = reason.id\nWHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_0935fa7d-7a0f-4f4a-9ab1-0076219383e3', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_0935fa7d-7a0f-4f4a-9ab1-0076219383e3', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Collection"",""reason"":""Collects personal data – gathers information about natural persons."",""explanation"":""The intention ‘Collection’ appears to be a valid category name that aligns with the activity of entering surgery data, which involves collecting patient information. The provided reason exists in the list of reasons and semantically matches both the activity and the intention. No changes to the SQL query are required."",""final_query"":""SELECT reason.reason\\nFROM category\\nJOIN category_reason_association ON category.id = category_reason_association.category_id\\nJOIN reason ON category_reason_association.reason_id = reason.id\\nWHERE category.name = \'Collection\' AND reason.reason = \'Collects personal data – gathers information about natural persons.\'""}'}]","SELECT reason.reason
+FROM category
+JOIN category_reason_association ON category.id = category_reason_association.category_id
+JOIN reason ON category_reason_association.reason_id = reason.id
+WHERE category.name = 'Collection' AND reason.reason = 'Collects personal data – gathers information about natural persons.'"
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:subProcess xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-6EFE25FB-0893-440F-A48A-876386148A36"" isForCompensation=""false"" name=""Perform pre-operation discussion "" startQuantity=""1"" triggeredByEvent=""false"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            <ns1:signavioMetaData metaKey=""entry"" metaValue=""/model/719f450440144d81801cab56dc3c371a"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-4EE787B9-6C02-4667-8B63-A984F5DA33FA</ns0:incoming>
+         <ns0:outgoing>sid-78899931-CEA9-49E3-9F26-9C1E8BA99E46</ns0:outgoing>
+      </ns0:subProcess>
+      
+
+Generated SQL:
+SELECT reason.reason
+FROM category
+JOIN category_reason_association ON category.id = category_reason_association.category_id
+JOIN reason ON category_reason_association.reason_id = reason.id
+WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems.'
+
+Error:
+
+
+Intent:
+A
+
+Reason of Intent:
+Stores personal data – saves information in databases, systems, or files.
+Accesses personal data – retrieves or makes data available to users or systems.,Accesses personal data – retrieves or makes data available to users or systems,Accesses personal data – retrieves or makes data available to users or systems.,ccesses personal data – retrieves or makes data available to users or systems.,Needs access to patients medical test results which include personal medical data,Access customer's financial data,Precise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.
+
+Hint:
+",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems.'
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:subProcess xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-6EFE25FB-0893-440F-A48A-876386148A36"" isForCompensation=""false"" name=""Perform pre-operation discussion "" startQuantity=""1"" triggeredByEvent=""false"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            <ns1:signavioMetaData metaKey=""entry"" metaValue=""/model/719f450440144d81801cab56dc3c371a"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-4EE787B9-6C02-4667-8B63-A984F5DA33FA</ns0:incoming>\n         <ns0:outgoing>sid-78899931-CEA9-49E3-9F26-9C1E8BA99E46</ns0:outgoing>\n      </ns0:subProcess>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nAccess\n\nCurrent reasons:\n[\'Stores personal data – saves information in databases, systems, or files.\\nAccesses personal data – retrieves or makes data available to users or systems.\', \'Accesses personal data – retrieves or makes data available to users or systems\', \'Accesses personal data – retrieves or makes data available to users or systems.\', \'ccesses personal data – retrieves or makes data available to users or systems.\', \'Needs access to patients medical test results which include personal medical data\', ""Access customer\'s financial data"", \'Precise information, including patient age, gender, Accesses personal data – retrieves or makes data available to users or systems.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Access\' AND reason.reason = \'Accesses personal data – retrieves or makes data available to users or systems.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_b483af12-8bc5-47ed-804a-2350cbbdb5b0', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_b483af12-8bc5-47ed-804a-2350cbbdb5b0', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Access"",""reason"":""Accesses personal data – retrieves or makes data available to users or systems."",""explanation"":""The intention \\""Access\\"" is a valid category name and fits the activity context of a pre‑operation discussion where access to personal data may be required. The chosen reason is present in the provided list and semantically appropriate for the activity. The SQL query correctly joins the tables and filters on both the category and reason, so no changes are needed."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Access\' AND reason.reason = \'Accesses personal data – retrieves or makes data available to users or systems.\'""}'}]",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Access' AND reason.reason = 'Accesses personal data – retrieves or makes data available to users or systems.'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-C17C448D-8303-4345-BD8A-C773D4A6A63B"" isForCompensation=""false"" name=""Meet patient"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-723938CF-2908-403E-ACD0-F4FCF0CA3B79</ns0:incoming>
+         <ns0:outgoing>sid-14C6F42D-BC92-4301-9024-5CC3C1C058CE</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal health data – gathers health information about natural persons.'
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal data – gathers information about natural persons., Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule),Collects personal data – gathers information about natural persons (e.g., name, email).,Collects personal data – gathers information about natural persons (speech).,Collects personal health data – gathers health information about natural persons.,Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc,Uses personal data – processes data for operational, analytical, or business purposes.
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collection' AND reason.reason = 'Collects personal health data – gathers health information about natural persons.'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-C17C448D-8303-4345-BD8A-C773D4A6A63B"" isForCompensation=""false"" name=""Meet patient"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-723938CF-2908-403E-ACD0-F4FCF0CA3B79</ns0:incoming>
+         <ns0:outgoing>sid-14C6F42D-BC92-4301-9024-5CC3C1C058CE</ns0:outgoing>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collects personal health data' AND reason.reason = 'Collects personal health data – gathers health information about natural persons.'
+
+Error:
+
+
+Intent:
+C
+
+Reason of Intent:
+Collects personal health data – gathers health information about natural persons.
+
+Hint:
+The original intention 'Collection' does not explicitly match the activity 'Meet patient' and is likely not present in the list of available intentions. The reason provided is consistent with the more specific intention 'Collects personal health data', which better reflects the nature of the task. Therefore the intention was updated to 'Collects personal health data' and the SQL query was modified to filter by this category. The reason remains unchanged as it already aligns with the new intention.",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collects personal health data' AND reason.reason = 'Collects personal health data – gathers health information about natural persons.'
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-C17C448D-8303-4345-BD8A-C773D4A6A63B"" isForCompensation=""false"" name=""Meet patient"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-723938CF-2908-403E-ACD0-F4FCF0CA3B79</ns0:incoming>\n         <ns0:outgoing>sid-14C6F42D-BC92-4301-9024-5CC3C1C058CE</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollection\n\nCurrent reasons:\n[\'Collects personal data – gathers information about natural persons.\', \' Collects personal data – gathers information about natural persons (PersonalID, departmentID, Time schedule)\', \'Collects personal data – gathers information about natural persons (e.g., name, email).\', \'Collects personal data – gathers information about natural persons (speech).\', \'Collects personal health data – gathers health information about natural persons.\', \'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Patient transport data is filled into a form which includes personal data such as weight, height, name, age etc\', \'Uses personal data – processes data for operational, analytical, or business purposes.\\nCollects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collection\' AND reason.reason = \'Collects personal health data – gathers health information about natural persons.\''}, {'role': 'assistant', 'content': None, 'tool_calls': [{'id': 'fc_15377da2-9e5e-483b-b49b-ae39e1921591', 'type': 'function', 'function': {'name': 'get_all_intentions', 'arguments': '{}'}}]}, {'role': 'tool', 'tool_call_id': 'fc_15377da2-9e5e-483b-b49b-ae39e1921591', 'name': 'get_all_intentions', 'content': 'Collection\nStorage\nUsage\nTransferal\nModification\nDeletion\nAccess'}, {'role': 'assistant', 'content': '{""intention_status"":""changed"",""reason_status"":""unchanged"",""intention"":""Collects personal health data"",""reason"":""Collects personal health data – gathers health information about natural persons."",""explanation"":""The original intention \'Collection\' does not explicitly match the activity \'Meet patient\' and is likely not present in the list of available intentions. The reason provided is consistent with the more specific intention \'Collects personal health data\', which better reflects the nature of the task. Therefore the intention was updated to \'Collects personal health data\' and the SQL query was modified to filter by this category. The reason remains unchanged as it already aligns with the new intention."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collects personal health data\' AND reason.reason = \'Collects personal health data – gathers health information about natural persons.\'""}'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-C17C448D-8303-4345-BD8A-C773D4A6A63B"" isForCompensation=""false"" name=""Meet patient"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-723938CF-2908-403E-ACD0-F4FCF0CA3B79</ns0:incoming>\n         <ns0:outgoing>sid-14C6F42D-BC92-4301-9024-5CC3C1C058CE</ns0:outgoing>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nCollects personal health data\n\nCurrent reasons:\n[\'Collects personal health data – gathers health information about natural persons.\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collects personal health data\' AND reason.reason = \'Collects personal health data – gathers health information about natural persons.\''}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":""Collects personal health data"",""reason"":""Collects personal health data – gathers health information about natural persons."",""explanation"":""Both the intention and reason exactly match the provided lists and are contextually appropriate for the activity \'Meet patient\', so no changes were required."",""final_query"":""SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Collects personal health data\' AND reason.reason = \'Collects personal health data – gathers health information about natural persons.\'""}'}]",SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Collects personal health data' AND reason.reason = 'Collects personal health data – gathers health information about natural persons.'
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-A76861E0-B426-4259-997B-A72EEB63E3A1"" isForCompensation=""false"" name=""Ordain premedication"" startQuantity=""1"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-30E63E33-89BF-461A-A71E-347D26170F39</ns0:incoming>
+         <ns0:outgoing>sid-0A9A4FAE-A4A4-47BB-BC78-AED306BA2D9A</ns0:outgoing>
+         <ns0:dataOutputAssociation id=""sid-ED4607B2-8C51-4770-922C-E861633EE08D"">
+            <ns0:extensionElements>
+               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            </ns0:extensionElements>
+            <ns0:sourceRef>sid-A76861E0-B426-4259-997B-A72EEB63E3A1</ns0:sourceRef>
+            <ns0:targetRef>sid-3A8CBF80-3291-4CA1-BB98-058C14606E84</ns0:targetRef>
+         </ns0:dataOutputAssociation>
+      </ns0:task>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Storage' AND reason.reason = 'Stores personal data – saves information in databases, systems, or files.'
+
+Error:
+
+
+Intent:
+S
+
+Reason of Intent:
+Collects personal health data – gathers health information about natural persons.
+Stores personal data – saves information in databases, systems, or files.,Stores personal data – saves information in databases, systems, or files., Stores personal data – saves information in databases, systems, or files.,Stores personal data – saves information in databases, systems, or files.
+    ,Stores personal data – saves information in databases, systems, or files.
+Accesses personal data – retrieves or makes data available to users or systems.,Storage of personal employment related data,Stores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.,Uses personal data (to decide medication), Stores personal data (in medical records)
+
+Hint:
+","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Storage' AND reason.reason = 'Stores personal data – saves information in databases, systems, or files.'"
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-A76861E0-B426-4259-997B-A72EEB63E3A1"" isForCompensation=""false"" name=""Ordain premedication"" startQuantity=""1"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-30E63E33-89BF-461A-A71E-347D26170F39</ns0:incoming>\n         <ns0:outgoing>sid-0A9A4FAE-A4A4-47BB-BC78-AED306BA2D9A</ns0:outgoing>\n         <ns0:dataOutputAssociation id=""sid-ED4607B2-8C51-4770-922C-E861633EE08D"">\n            <ns0:extensionElements>\n               <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            </ns0:extensionElements>\n            <ns0:sourceRef>sid-A76861E0-B426-4259-997B-A72EEB63E3A1</ns0:sourceRef>\n            <ns0:targetRef>sid-3A8CBF80-3291-4CA1-BB98-058C14606E84</ns0:targetRef>\n         </ns0:dataOutputAssociation>\n      </ns0:task>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nStorage\n\nCurrent reasons:\n[\'Collects personal health data – gathers health information about natural persons.\\nStores personal data – saves information in databases, systems, or files.\', \'Stores personal data – saves information in databases, systems, or files.\', \' Stores personal data – saves information in databases, systems, or files.\', \'Stores personal data – saves information in databases, systems, or files.\\n    \', \'Stores personal data – saves information in databases, systems, or files.\\nAccesses personal data – retrieves or makes data available to users or systems.\', \'Storage of personal employment related data\', \'Stores personal data – saves information in databases, systems, or files. If the customer is a natural person or the organization has a contact person.\', \'Uses personal data (to decide medication), Stores personal data (in medical records)\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Storage\' AND reason.reason = \'Stores personal data – saves information in databases, systems, or files.\''}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":"""",""reason"":"""",""explanation"":"""",""final_query"":""""}'}]",
+"<role>
+You are a strict SQL query correction engine.
+</role>
+
+<instructions>
+You will receive a SQL query and an error message.
+
+1. If the error message is empty or missing, return the given SQL query EXACTLY as provided, without any modification.
+2. If the error message is not empty, analyze it and produce a corrected version of the given SQL query that fixes the described error. Keep all other parts of the query unchanged; only fix what the error requires.
+3. If the query contains the wrong value in the where clause of the reason table, correct the query with the correct value.
+4. Never explain your reasoning, never add comments, never add markdown code fences.
+5. Check if also the reason column was used in the WHERE condition with one given reason, if not improve it by adding the best suitable reason.
+6. Check if only given intentions and reasons are in the WHERE condition, if not improve them with the best suitable of the given reasons.
+7. Use the given tools if necessary.
+8. Output ONLY a single valid JSON object in exactly this format, with no additional text before or after it:
+{""final_query"": ""GENERATED_SQL""}
+9. The value of ""final_query"" must be a single valid SQL string. Escape any double quotes or newlines inside it so the JSON stays valid.
+</instructions>","Database schema:
+Table: category
+  - id (Integer, primary key)
+  - name (String(255), unique, not null)
+
+Table: reason
+  - id (Integer, primary key)
+  - reason (Text, not null, unique)
+
+Table: category_reason_association
+  - category_id (Integer, FK -> category.id, primary key)
+  - reason_id (Integer, FK -> reason.id, primary key)
+
+Relationships:
+  - category.reasons <-> reason.categories (many-to-many via category_reason_association)
+
+
+BPMN Activity Field:
+<ns0:subProcess xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-71AF5554-8150-4459-9577-961A5D078CB2"" isForCompensation=""false"" name=""Introduce patient to head physician "" startQuantity=""1"" triggeredByEvent=""false"">
+         <ns0:extensionElements>
+            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
+            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
+            <ns1:signavioMetaData metaKey=""entry"" metaValue=""/model/8fc5b5f76213487992683ce864c30794"" />
+         </ns0:extensionElements>
+         <ns0:incoming>sid-87BD3AD9-DF88-4242-867D-629632F15FB3</ns0:incoming>
+         <ns0:outgoing>sid-4EE787B9-6C02-4667-8B63-A984F5DA33FA</ns0:outgoing>
+      </ns0:subProcess>
+      
+
+Generated SQL:
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Transferal' AND reason.reason = 'Transfers personal data – shares data internally, with third parties, or externally'
+
+Error:
+
+
+Intent:
+T
+
+Reason of Intent:
+Transfers personal data – shares data internally, with third parties, or externally,Transfers personal data – shares data internally, with third parties, or externally.,ransfers personal data – shares data internally, with third parties, or externally.,Submit personal data to another institution (court)
+
+Hint:
+","SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Transferal' AND reason.reason = 'Transfers personal data – shares data internally, with third parties, or externally'"
+"You are a SQL post-processing and validation agent.
+
+Your task is to validate and, if necessary, correct the current SQL query.
+
+You are given:
+- an activity field
+- a database schema
+- the currently selected intention
+- the current reason of that intention
+- the current SQL query
+- the list of all available intentions (from get_all_intentions)
+- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)
+
+Your goal is to ensure that:
+1. The intention represented by the current query is valid and contextually appropriate for the activity field.
+2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.
+3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.
+
+==================================================
+INTENTION VALIDATION
+==================================================
+
+You already have the list of all available intentions in the user prompt.
+NEVER assume that the current intention is valid.
+
+An intention is valid only if BOTH conditions are satisfied:
+1. The intention exists in the provided list of available intentions.
+2. The intention semantically fits the activity field.
+
+The activity field is the primary context for determining whether the intention is appropriate.
+
+An intention MUST NOT be considered valid merely because it exists in the database.
+
+If the current intention is invalid:
+- select the intention that best matches the activity field
+- the selected intention MUST come from the provided list
+- NEVER invent an intention
+
+==================================================
+REASON VALIDATION
+==================================================
+
+You already have the list of all available reasons for the validated intention in the user prompt.
+NEVER assume that the current reason is valid.
+
+A reason is valid only if BOTH conditions are satisfied:
+1. The reason exists in the provided list of reasons.
+2. The reason semantically fits:
+   - the activity field
+   - the validated intention
+
+If the current reason is invalid:
+- select the reason that best matches the activity field and validated intention
+- the selected reason MUST come from the provided list
+- NEVER invent a reason
+
+==================================================
+QUERY VALIDATION
+==================================================
+
+If the intention or reason is changed, correct the SQL query accordingly.
+
+The final query MUST be consistent with:
+- activity field
+- database schema
+- validated intention
+- validated reason
+
+Do not unnecessarily rewrite the entire query.
+Preserve the existing query whenever possible and only modify the parts that need to be changed.
+Never reference tables or columns that do not exist in the database schema.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+After both validations are complete, return ONLY the following JSON object:
+
+{""intention_status"": ""unchanged"" | ""changed"",
+    ""reason_status"": ""unchanged"" | ""changed"",
+    ""intention"": ""<validated intention>"",
+    ""reason"": ""<validated reason>"",
+    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""
+    ""final_query"": ""<final SQL query>""
+}
+
+`intention_status`:
+- ""unchanged"" if the original intention was valid and appropriate.
+- ""changed"" if the original intention was invalid and had to be replaced.
+
+`reason_status`:
+- ""unchanged"" if the original reason was valid and appropriate.
+- ""changed"" if the original reason was invalid and had to be replaced.
+
+The `explanation`: Why it was false and hints to improve it.
+The `intention` field MUST contain the final validated intention.
+The `reason` field MUST contain the final validated reason.
+The `final_query` field MUST contain the final SQL query.
+
+Do not include any additional fields.","[{'role': 'system', 'content': 'You are a SQL post-processing and validation agent.\n\nYour task is to validate and, if necessary, correct the current SQL query.\n\nYou are given:\n- an activity field\n- a database schema\n- the currently selected intention\n- the current reason of that intention\n- the current SQL query\n- the list of all available intentions (from get_all_intentions)\n- the list of all available reasons for the current/validated intention (from get_all_reasons_of_category)\n\nYour goal is to ensure that:\n1. The intention represented by the current query is valid and contextually appropriate for the activity field.\n2. The reason represented by the current query is valid and contextually appropriate for the activity field and the validated intention.\n3. The final SQL query is consistent with the activity field, database schema, validated intention, and validated reason.\n\n==================================================\nINTENTION VALIDATION\n==================================================\n\nYou already have the list of all available intentions in the user prompt.\nNEVER assume that the current intention is valid.\n\nAn intention is valid only if BOTH conditions are satisfied:\n1. The intention exists in the provided list of available intentions.\n2. The intention semantically fits the activity field.\n\nThe activity field is the primary context for determining whether the intention is appropriate.\n\nAn intention MUST NOT be considered valid merely because it exists in the database.\n\nIf the current intention is invalid:\n- select the intention that best matches the activity field\n- the selected intention MUST come from the provided list\n- NEVER invent an intention\n\n==================================================\nREASON VALIDATION\n==================================================\n\nYou already have the list of all available reasons for the validated intention in the user prompt.\nNEVER assume that the current reason is valid.\n\nA reason is valid only if BOTH conditions are satisfied:\n1. The reason exists in the provided list of reasons.\n2. The reason semantically fits:\n   - the activity field\n   - the validated intention\n\nIf the current reason is invalid:\n- select the reason that best matches the activity field and validated intention\n- the selected reason MUST come from the provided list\n- NEVER invent a reason\n\n==================================================\nQUERY VALIDATION\n==================================================\n\nIf the intention or reason is changed, correct the SQL query accordingly.\n\nThe final query MUST be consistent with:\n- activity field\n- database schema\n- validated intention\n- validated reason\n\nDo not unnecessarily rewrite the entire query.\nPreserve the existing query whenever possible and only modify the parts that need to be changed.\nNever reference tables or columns that do not exist in the database schema.\n\n==================================================\nFINAL OUTPUT\n==================================================\n\nAfter both validations are complete, return ONLY the following JSON object:\n\n{""intention_status"": ""unchanged"" | ""changed"",\n    ""reason_status"": ""unchanged"" | ""changed"",\n    ""intention"": ""<validated intention>"",\n    ""reason"": ""<validated reason>"",\n    ""explanation"": ""<explanation why it changed or not changed and hints for the next time for correction>""\n    ""final_query"": ""<final SQL query>""\n}\n\n`intention_status`:\n- ""unchanged"" if the original intention was valid and appropriate.\n- ""changed"" if the original intention was invalid and had to be replaced.\n\n`reason_status`:\n- ""unchanged"" if the original reason was valid and appropriate.\n- ""changed"" if the original reason was invalid and had to be replaced.\n\nThe `explanation`: Why it was false and hints to improve it.\nThe `intention` field MUST contain the final validated intention.\nThe `reason` field MUST contain the final validated reason.\nThe `final_query` field MUST contain the final SQL query.\n\nDo not include any additional fields.'}, {'role': 'user', 'content': 'Validate the following SQL query.\n\nActivity field:\n<ns0:subProcess xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-71AF5554-8150-4459-9577-961A5D078CB2"" isForCompensation=""false"" name=""Introduce patient to head physician "" startQuantity=""1"" triggeredByEvent=""false"">\n         <ns0:extensionElements>\n            <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />\n            <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />\n            <ns1:signavioMetaData metaKey=""entry"" metaValue=""/model/8fc5b5f76213487992683ce864c30794"" />\n         </ns0:extensionElements>\n         <ns0:incoming>sid-87BD3AD9-DF88-4242-867D-629632F15FB3</ns0:incoming>\n         <ns0:outgoing>sid-4EE787B9-6C02-4667-8B63-A984F5DA33FA</ns0:outgoing>\n      </ns0:subProcess>\n      \n\nDatabase schema:\nTable: category\n  - id (Integer, primary key)\n  - name (String(255), unique, not null)\n\nTable: reason\n  - id (Integer, primary key)\n  - reason (Text, not null, unique)\n\nTable: category_reason_association\n  - category_id (Integer, FK -> category.id, primary key)\n  - reason_id (Integer, FK -> reason.id, primary key)\n\nRelationships:\n  - category.reasons <-> reason.categories (many-to-many via category_reason_association)\n\n\nCurrent intention:\nTransferal\n\nCurrent reasons:\n[\'Transfers personal data – shares data internally, with third parties, or externally\', \'Transfers personal data – shares data internally, with third parties, or externally.\', \'ransfers personal data – shares data internally, with third parties, or externally.\', \'Submit personal data to another institution (court)\']\n\nCurrent SQL query:\nSELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = \'Transferal\' AND reason.reason = \'Transfers personal data – shares data internally, with third parties, or externally\''}, {'role': 'assistant', 'content': '{""intention_status"":""unchanged"",""reason_status"":""unchanged"",""intention"":"""",""reason"":"""",""explanation"":"""",""final_query"":""""}'}]",
