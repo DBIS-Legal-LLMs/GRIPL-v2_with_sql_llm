@@ -6,7 +6,7 @@ from app.reranker_component.reranker import Reranker
 from typing import TYPE_CHECKING
 import json
 from app.find_intention_component.schemas import IntentionAnswer
-
+from app.sql_post_processing_component.schemas import SQLVerificationResultAnswer
 
 if TYPE_CHECKING:
     from .sql_post_processing import SQLPostProcessing
@@ -136,7 +136,7 @@ class PostProcessingMcpClient:
                                 "content": verification_answer.model_dump_json(),
                             })
 
-                            if (
+                            if (isinstance(verification_answer, SQLVerificationResultAnswer) and
                                     verification_answer.intention_status == "unchanged"
                                     and verification_answer.reason_status == "unchanged"
                             ):

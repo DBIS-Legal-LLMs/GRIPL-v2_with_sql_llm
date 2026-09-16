@@ -106,10 +106,14 @@ class LLMFallBackManager:
                 schema_output=self.schema_output
             )
 
-            return llm.get_answer_from_llm(
+            ans_openrouter =  llm.get_answer_open_router_based(
                 messages=messages,
                 tools=tools,
             )
+
+            print("answer open router ")
+            print(ans_openrouter)
+            return ans_openrouter
 
         except Exception as e:
             print(traceback.format_exc())
