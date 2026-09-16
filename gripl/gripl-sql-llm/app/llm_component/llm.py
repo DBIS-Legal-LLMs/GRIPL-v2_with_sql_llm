@@ -57,6 +57,42 @@ class LLM:
             print(traceback.format_exc())
             raise
 
+    def get_answer_open_router_based(self,
+                                     messages: list,
+                                     tools: list | None = None,
+                                     ):
+
+        try:
+
+            if not tools:
+                return self.get_structured_answer_open_router_based(messages)
+
+            client = instructor.from_provider(
+                model=self.model_name,
+                base_url=self.model_url,
+                api_key=self.api_key,
+
+            )
+
+            parsed, raw = client.create_with_completion(
+                messages=messages,
+                response_model=self.schema_output,
+                tools=tools,
+                max_retries=self.max_retries,
+            )
+
+            message = raw.choices[0].message
+
+            if message.tool_calls:
+                return message
+
+            return parsed
+
+        except Exception:
+            print("error in open router answer")
+            print(traceback.format_exc())
+            raise
+
     def get_structured_answer(self, messages: list):
 
         try:
@@ -79,6 +115,26 @@ class LLM:
             )
 
         except Exception:
+            print(traceback.format_exc())
+            raise
+
+    def get_structured_answer_open_router_based(self, messages: list):
+        try:
+
+            client = instructor.from_provider(
+                model=self.model_name,
+                base_url=self.model_url,
+                api_key=self.api_key,
+            )
+
+            return client.create(
+                messages=messages,
+                response_model=self.schema_output,
+                max_retries=self.max_retries,
+            )
+
+        except Exception as e :
+            print("error in llm answer with open router")
             print(traceback.format_exc())
             raise
 
@@ -114,24 +170,4 @@ class LLM:
 
         return cleaned
 
-    def get_answer_open_router_based(self,
-                                     messages: list
-                                     ):
-
-        try:
-
-            client = instructor.from_provider(
-                self.model_name,
-                base_url=self.model_url,
-
-            )
-
-            resp = client.create(
-                messages=messages,
-                response_model=self.schema_output,
-            )
-
-        except Exception:
-            print("error in open router answer")
-            print(traceback.format_exc())
 
