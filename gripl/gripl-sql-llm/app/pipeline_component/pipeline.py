@@ -41,8 +41,8 @@ class PipelineComponent:
                 current_result = await self.get_sid_and_reason_if_critical(activity)
                 print("current reult ")
                 print(current_result)
-
-                results.append(current_result)
+                if current_result:
+                    results.append(current_result)
 
             return results
 
