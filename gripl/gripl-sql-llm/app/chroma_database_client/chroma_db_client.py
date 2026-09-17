@@ -1,21 +1,27 @@
 from pathlib import Path
 import chromadb
-from sentence_transformers import SentenceTransformer
 import traceback
+from dotenv import load_dotenv
+import os
+from app.llm_component.llm import LLM
+
+load_dotenv()
+
+
 
 
 class ChromaDatabaseClient:
     def __init__(self,
-                 embedding_model: SentenceTransformer,
+                 embedding_model: LLM,
                  dictionary_name: str,
                  collection_name: str,
                  ):
         self.db_path = Path(__file__).resolve().parent / "embeddings" / dictionary_name
         self.db_path.mkdir(parents=True, exist_ok=True)
-        self.collection_name = collection_name
         self.embedding_model = embedding_model
+        self.collection_name = collection_name
         self.batch_size = 16
-        self.top_k = 3
+        self.top_k = 5
 
 
     def get_collection(self):
@@ -28,33 +34,33 @@ class ChromaDatabaseClient:
     def fill_collection(self,documents: list[str] ):
         collection = self.get_collection()
 
-        embeddings = self.embedding_model.encode(
-            documents,
-            convert_to_numpy=True
-        ).tolist()
+        embeddings = self.embedding_model.get_embeddings_from_llm(documents)
 
-        ids = [str(i) for i in range(len(documents))]
+        ids = [
+            str(i)
+            for i in range(len(documents))
+        ]
 
         collection.add(
             ids=ids,
             documents=documents,
-            embeddings=embeddings
+            embeddings=embeddings,
         )
-
 
     def get_top_k_results(self, query):
 
         try:
             collection = self.get_collection()
 
-            embedded_query = self.embedding_model.encode(query)
+            embedded_query = self.embedding_model.get_embeddings_from_llm([query])[0]
 
             results = collection.query(
-                query_embeddings=[embedded_query.tolist()],
-                n_results=5
+                query_embeddings=[embedded_query],
+                n_results=self.top_k,
             )
 
             return results["documents"][0]
+
         except Exception as e:
             print(traceback.format_exc())
             print(e)
@@ -76,10 +82,7 @@ class ChromaDatabaseClient:
                 batch = only_documents[start:start + self.batch_size]
 
 
-                embeddings = self.embedding_model.encode(
-                        batch,
-                        convert_to_numpy=True
-                    ).tolist()
+                embeddings = self.embedding_model.get_embeddings_from_llm(batch)
 
                 ids = [
                         str(i)
@@ -102,7 +105,7 @@ class ChromaDatabaseClient:
         try:
             collection = self.get_collection()
 
-            embedded_query = self.embedding_model.encode(query)
+            embedded_query = self.embedding_model.get_embeddings_from_llm([query])
 
             results = collection.query(
                         query_embeddings=[embedded_query.tolist()],

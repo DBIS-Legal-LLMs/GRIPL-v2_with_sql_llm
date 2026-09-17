@@ -121,10 +121,7 @@ class Evaluator:
                     ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                 ],
                 "EMBEDDING_MODEL": [
-                    ("all-MiniLM-L6-v2", "", ""),
-                ],
-                "CROSS_ENCODING_MODEL": [
-                    ("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1", "", ""),
+                    ("openai/text-embedding-3-small", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1/embeddings"),
                 ],
             }
 

@@ -106,15 +106,24 @@ class LLMFallBackManager:
                 schema_output=self.schema_output
             )
 
-            ans_openrouter =  llm.get_answer_from_llm(
+            return   llm.get_answer_from_llm(
                 messages=messages,
                 tools=tools,
             )
 
-            print("answer open router ")
-            print(ans_openrouter)
-            return ans_openrouter
 
         except Exception as e:
             print(traceback.format_exc())
             raise
+
+    def get_embedding_of_current_embedding_model(self,
+                                                 documents:list[str]
+                                                 ):
+
+        try:
+
+            pass
+
+        except Exception as e:
+            print("get error in getting embedidng")
+            print(traceback.format_exc())
