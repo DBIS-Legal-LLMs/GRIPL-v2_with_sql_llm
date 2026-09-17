@@ -22,4 +22,5 @@ rag_working_dir/
 gripl/gripl-rag/.env
 
 gripl/gripl-sql-llm/test.db
+gripl/gripl-sql-llm/venv
 

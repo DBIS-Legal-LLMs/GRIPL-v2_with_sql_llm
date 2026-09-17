@@ -1,4 +1,3 @@
-from groq import Groq
 from typing import Type
 from pydantic import BaseModel
 import traceback
@@ -24,43 +23,6 @@ class LLM:
                             messages: list,
                             tools: list | None = None,
                             ):
-        try:
-
-
-            if not tools:
-                return self.get_structured_answer(messages)
-
-            client = instructor.from_groq(
-                Groq(
-                    api_key=self.api_key),
-            )
-
-            response = client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                tools=tools,
-                tool_choice="auto",
-                response_model=None,
-                max_retries=self.max_retries,
-            )
-
-            message = response.choices[0].message
-
-            if message.tool_calls:
-                return message
-
-            return self.get_structured_answer(
-                messages,
-            )
-
-        except Exception:
-            print(traceback.format_exc())
-            raise
-
-    def get_answer_open_router_based(self,
-                                     messages: list,
-                                     tools: list | None = None,
-                                     ):
 
         try:
 
@@ -96,8 +58,6 @@ class LLM:
     def get_structured_answer(self, messages: list):
 
         try:
-
-            # TODO: had problems with instructor.from_provider with groq , must be changed if not to groq
 
             messages = self._sanitize_messages_for_tool_call(messages)
 
