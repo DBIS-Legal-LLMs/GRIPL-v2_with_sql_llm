@@ -62,9 +62,6 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
             ):
     try:
 
-        print("incomming object")
-        print(vars(analysis_request))
-
         fill_in_db_models_and_env(
             json.loads(analysis_request.llmProps_raw).get("modelName", ""),
             json.loads(analysis_request.llmProps_raw).get("apiKey", ""),
@@ -76,6 +73,10 @@ async def analyse(analysis_request: AnalysisSQLRequest = Depends(),
         bpmn_file = await analysis_request.bpmnFile.read()
 
         result = await pipeline_component.get_analysis(bpmn_file)
+
+        sql_execution_component = SQLExecution()
+
+        sql_execution_component.delete_sql("DELETE FROM fallback_llm")
 
         return {
             "criticalElements": result
@@ -94,7 +95,7 @@ def fill_in_db_models_and_env(models: str, api_keys_in_env: str, base_urls: str)
             if not part or ':' not in part:
                 continue
             key, values = part.split(':', 1)
-            items = [v.strip() for v in values.split(',') if v.strip() or True]  # leere Einträge zulassen
+            items = [v.strip() for v in values.split(',') if v.strip() or True]
 
             result[key] = items
         return result
