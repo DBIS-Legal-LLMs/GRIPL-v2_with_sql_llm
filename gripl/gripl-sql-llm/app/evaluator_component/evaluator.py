@@ -21,6 +21,8 @@ class Evaluator:
     async def evaluate(self):
         try:
 
+            self.delete_all_models_before_run()
+
             self.delete_result_file_if_exists()
 
             self.fill_models_with_fall_backs_in_db()
@@ -80,6 +82,21 @@ class Evaluator:
         for file in logging_files:
             if file.exists():
                 file.unlink()
+
+    def delete_all_models_before_run(self):
+        try:
+
+            sql = "DELETE FROM fallback_llm"
+
+            sql_execution_component = self.pipe_line.sql_execution
+
+            sql_execution_component.delete_sql(sql)
+
+            print("All fallback LLMs deleted successfully")
+
+        except Exception as e:
+            print("error deleting all models")
+            print(traceback.format_exc())
 
     def fill_models_with_fall_backs_in_db(self):
         try:
