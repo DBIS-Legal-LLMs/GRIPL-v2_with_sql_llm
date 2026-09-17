@@ -34,22 +34,18 @@ Relationships:
 
 
 BPMN Activity Field:
-<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-87E2518C-79DE-403D-8A33-010389B828A6"" isForCompensation=""false"" name=""Give medicaments"" startQuantity=""1"">
+<ns0:task xmlns:ns0=""http://www.omg.org/spec/BPMN/20100524/MODEL"" xmlns:ns1=""http://www.signavio.com"" completionQuantity=""1"" id=""sid-E05999ED-FBEC-4936-994E-EC0F5808EF69"" isForCompensation=""false"" name=""Patient fasts"" startQuantity=""1"">
          <ns0:extensionElements>
             <ns1:signavioMetaData metaKey=""bgcolor"" metaValue=""#ffffcc"" />
             <ns1:signavioMetaData metaKey=""bordercolor"" metaValue=""#000000"" />
          </ns0:extensionElements>
-         <ns0:incoming>sid-C0B2452C-642A-4C03-844C-2D61E7388CD1</ns0:incoming>
-         <ns0:outgoing>sid-EE042B87-8B0F-4624-A3C3-478A63F1DAFF</ns0:outgoing>
+         <ns0:incoming>sid-461B20B8-CA1F-426C-BEAF-00ED405B7A0B</ns0:incoming>
+         <ns0:outgoing>sid-95EC89D6-F776-46C8-8DB9-5577660A0C26</ns0:outgoing>
       </ns0:task>
       
 
 Generated SQL:
-SELECT reason.reason
-FROM category
-JOIN category_reason_association ON category.id = category_reason_association.category_id
-JOIN reason ON category_reason_association.reason_id = reason.id
-WHERE category.name = 'Usage' AND reason.reason = 'Uses personal data – processes data for operational, analytical, or business purposes.';
+SELECT reason.reason FROM category JOIN category_reason_association ON category.id = category_reason_association.category_id JOIN reason ON category_reason_association.reason_id = reason.id WHERE category.name = 'Usage' AND reason.reason = 'Uses personal data – processes data for operational, analytical, or business purposes.';
 
 Error:
 
