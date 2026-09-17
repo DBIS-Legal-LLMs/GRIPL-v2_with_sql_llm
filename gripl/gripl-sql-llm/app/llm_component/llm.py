@@ -74,10 +74,10 @@ class LLM:
 
             )
 
-            parsed, raw = client.create_with_completion(
+            raw = client.create(
                 messages=messages,
-                response_model=self.schema_output,
                 tools=tools,
+                response_model=None,
                 max_retries=self.max_retries,
             )
 
@@ -86,7 +86,7 @@ class LLM:
             if message.tool_calls:
                 return message
 
-            return parsed
+            return self.get_structured_answer_open_router_based(messages)
 
         except Exception:
             print("error in open router answer")
@@ -125,6 +125,7 @@ class LLM:
                 model=self.model_name,
                 base_url=self.model_url,
                 api_key=self.api_key,
+                mode=instructor.Mode.JSON,
             )
 
             return client.create(
@@ -144,30 +145,5 @@ class LLM:
         except Exception:
             print(traceback.format_exc())
             return []
-
-    def _sanitize_messages_for_tool_call(self, messages: list) -> list:
-
-        cleaned = []
-
-        for m in messages:
-            role = m.get("role") if isinstance(m, dict) else getattr(m, "role", None)
-
-            if role == "tool":
-                continue
-
-            if role == "assistant":
-                tool_calls = m.get("tool_calls") if isinstance(m, dict) else getattr(m, "tool_calls", None)
-                content = m.get("content") if isinstance(m, dict) else getattr(m, "content", None)
-
-                if tool_calls:
-                    if not content:
-
-                        continue
-
-                    m = {k: v for k, v in m.items() if k != "tool_calls"} if isinstance(m, dict) else m
-
-            cleaned.append(m)
-
-        return cleaned
 
 
