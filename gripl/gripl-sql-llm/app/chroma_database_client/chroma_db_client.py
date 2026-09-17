@@ -3,7 +3,7 @@ import chromadb
 import traceback
 from dotenv import load_dotenv
 import os
-from app.llm_component.llm import LLM
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
 
 load_dotenv()
 
@@ -12,13 +12,13 @@ load_dotenv()
 
 class ChromaDatabaseClient:
     def __init__(self,
-                 embedding_model: LLM,
+                 embedding_model_handler: LLMFallBackManager,
                  dictionary_name: str,
                  collection_name: str,
                  ):
         self.db_path = Path(__file__).resolve().parent / "embeddings" / dictionary_name
         self.db_path.mkdir(parents=True, exist_ok=True)
-        self.embedding_model = embedding_model
+        self.embedding_model_handler = embedding_model_handler
         self.collection_name = collection_name
         self.batch_size = 16
         self.top_k = 5
@@ -34,7 +34,7 @@ class ChromaDatabaseClient:
     def fill_collection(self,documents: list[str] ):
         collection = self.get_collection()
 
-        embeddings = self.embedding_model.get_embeddings_from_llm(documents)
+        embeddings = self.embedding_model_handler.get_embedding_of_current_embedding_model(documents)
 
         ids = [
             str(i)
@@ -52,7 +52,7 @@ class ChromaDatabaseClient:
         try:
             collection = self.get_collection()
 
-            embedded_query = self.embedding_model.get_embeddings_from_llm([query])[0]
+            embedded_query = self.embedding_model_handler.get_embedding_of_current_embedding_model([query])[0]
 
             results = collection.query(
                 query_embeddings=[embedded_query],
@@ -82,7 +82,7 @@ class ChromaDatabaseClient:
                 batch = only_documents[start:start + self.batch_size]
 
 
-                embeddings = self.embedding_model.get_embeddings_from_llm(batch)
+                embeddings = self.embedding_model_handler.get_embedding_of_current_embedding_model(batch)
 
                 ids = [
                         str(i)
@@ -105,7 +105,7 @@ class ChromaDatabaseClient:
         try:
             collection = self.get_collection()
 
-            embedded_query = self.embedding_model.get_embeddings_from_llm([query])
+            embedded_query = self.embedding_model_handler.get_embedding_of_current_embedding_model([query])
 
             results = collection.query(
                         query_embeddings=[embedded_query.tolist()],
