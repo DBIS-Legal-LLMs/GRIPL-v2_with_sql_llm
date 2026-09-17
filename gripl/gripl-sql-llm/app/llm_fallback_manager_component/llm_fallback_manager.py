@@ -106,7 +106,7 @@ class LLMFallBackManager:
                 schema_output=self.schema_output
             )
 
-            ans_openrouter =  llm.get_answer_open_router_based(
+            ans_openrouter =  llm.get_answer_from_llm(
                 messages=messages,
                 tools=tools,
             )
