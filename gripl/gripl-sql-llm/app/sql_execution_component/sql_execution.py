@@ -34,3 +34,24 @@ class SQLExecution:
                 conn.commit()
         except sqlite3.Error as e:
             return {"error": str(e)}
+
+    def delete_sql(self, sql, params=None):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                if params:
+                    cursor.execute(sql, params)
+                else:
+                    cursor.execute(sql)
+
+                conn.commit()
+
+                return {
+                    "success": True,
+                    "deleted_rows": cursor.rowcount
+                }
+        except sqlite3.Error as e:
+            return {
+                "error": str(e)
+            }
