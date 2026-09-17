@@ -128,8 +128,6 @@ class PostProcessingMcpClient:
 
                                 break
 
-                            print("verification answer ")
-                            print(verification_answer)
                             verification_component_messages.append({
                                 "role": "assistant",
                                 "content": verification_answer.model_dump_json(),

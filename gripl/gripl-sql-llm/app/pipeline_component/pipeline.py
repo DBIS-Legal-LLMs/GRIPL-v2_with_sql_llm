@@ -35,9 +35,8 @@ class PipelineComponent:
             for activity in total_activities_fields:
 
                 current_result = await self.get_sid_and_reason_if_critical(activity)
-                print("current reult ")
-                print(current_result)
-                if current_result:
+
+                if current_result and current_result.get("id", "") != "" and current_result.get("reason", "") != "":
                     results.append(current_result)
 
             return results
@@ -113,7 +112,7 @@ class PipelineComponent:
 
             if results_of_post_processed_query:
                 return {
-                    "value": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
+                    "id": self.bpmn_data_pre_processor.get_sid_from_activity_field_of_bpmn_file(activity_field),
                     "reason": results_of_post_processed_query ,
                 }
 
