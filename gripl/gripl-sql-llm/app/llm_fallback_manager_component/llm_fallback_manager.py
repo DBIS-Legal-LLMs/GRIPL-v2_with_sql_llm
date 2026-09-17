@@ -51,7 +51,6 @@ class LLMFallBackManager:
                     print(f"Model {model} failed after all retries. Trying next model...")
                     continue
 
-
             return self.schema_output()
 
         except Exception as e:
@@ -122,8 +121,29 @@ class LLMFallBackManager:
 
         try:
 
-            pass
+            models_env_api_key_list = self.get_all_possible_llm_models_of_component(self.llm_component_name)
+
+            for model, env_api_key_name, model_url in models_env_api_key_list:
+                try:
+
+                    llm = LLM(
+                        model_name=model_name,
+                        model_url=model_url,
+                        api_key=os.getenv(api_key_env_name),
+                        schema_output=None
+                    )
+
+                    return llm.get_embeddings_from_llm(
+                        texts=documents,
+                    )
+
+                except Exception as e:
+                    print(f"Model {model} failed after all retries. Trying next model...")
+                    continue
+
+            return []
 
         except Exception as e:
             print("get error in getting embedidng")
             print(traceback.format_exc())
+            return []

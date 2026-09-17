@@ -46,16 +46,20 @@ verification_llm_handler = LLMFallBackManager(
     schema_output=SQLVerificationResultAnswer,
 )
 
+embedding_llm_handler = LLMFallBackManager(
+    llm_component_name=EMBEDDING_MODEL,
+    schema_output=None
+)
+
 post_processing_mcp_client = PostProcessingMcpClient()
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 dictionary_name = "activity_example"
 
 collection_name = "activity_example"
 
 chroma_db_client = ChromaDatabaseClient(
-    embedding_model=model,
+    embedding_model_handler=embedding_llm_handler,
     dictionary_name=dictionary_name,
     collection_name=collection_name,
 )
