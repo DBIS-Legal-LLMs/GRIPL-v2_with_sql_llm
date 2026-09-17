@@ -2,7 +2,6 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 import traceback
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
-from app.reranker_component.reranker import Reranker
 from typing import TYPE_CHECKING
 import json
 from app.find_intention_component.schemas import IntentionAnswer

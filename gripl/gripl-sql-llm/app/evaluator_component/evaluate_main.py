@@ -4,7 +4,6 @@ from app.pipeline_component.pipeline import PipelineComponent
 from app.data_loader_component.data_loader import DataLoader
 from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
 from app.find_intention_component.find_intention import FindIntention
-from app.reranker_component.reranker import Reranker
 from app.find_intention_component.schemas import IntentionAnswer
 from app.sql_execution_component.sql_execution import SQLExecution
 from app.sql_generation_component.sql_generation import SQLGenerator
@@ -100,12 +99,9 @@ sql_post_processing = SQLPostProcessing(
     logging_component=post_processed_logger
 )
 
-reranker = Reranker("cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
-
 pipeline = PipelineComponent(
     chroma_db_client=chroma_db_client,
     find_intention=intention_component,
-    reranker=reranker,
     sql_execution=sql_execution,
     sql_generation=sql_generator,
     post_processing=sql_post_processing,
