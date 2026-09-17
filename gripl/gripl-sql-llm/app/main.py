@@ -155,6 +155,11 @@ def get_pipeline(
             schema_output=SQLVerificationResultAnswer,
         )
 
+        embedding_model_handler = LLMFallBackManager(
+            llm_component_name=EMBEDDING_MODEL,
+            schema_output=None
+        )
+
         post_processing_mcp_client = PostProcessingMcpClient()
 
         embedding_model_name = get_embedding_or_reranker(

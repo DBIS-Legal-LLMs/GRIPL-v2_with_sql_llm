@@ -1,9 +1,16 @@
 from pathlib import Path
 import pandas as pd
 import json
+from app.llm_component.llm import LLM
 from app.chroma_database_client.chroma_db_client import ChromaDatabaseClient
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
-from sentence_transformers import SentenceTransformer
+from dotenv import load_dotenv
+import os
+from app.config.component_name import EMBEDDING_MODEL
+import traceback
+from app.sql_execution_component.sql_execution import SQLExecution
+
+load_dotenv()
 
 
 def build_sql_query(category: str, reason: str):
@@ -13,6 +20,36 @@ def build_sql_query(category: str, reason: str):
         JOIN category c ON c.id = cra.category_id 
         WHERE c.name = '{category}' AND r.reason = '{reason}'
 """
+
+
+def get_embedding_model(
+        component_name: str,
+):
+    try:
+
+        sql_execution_component = SQLExecution()
+
+        sql = f"""
+                                SELECT name, 
+                                model_url, 
+                                env_api_key_name 
+                                FROM fallback_llm
+                                 WHERE corresponding_comment = '{component_name}'
+                                ORDER BY "order" ASC
+                                LIMIT 1;
+
+                        """
+
+        return [(execution_result.get("name", ""),
+                 execution_result.get("model_url", ""),
+                 execution_result.get("env_api_key_name", "")
+                 ) for execution_result in
+                sql_execution_component.get_sql_query_results(sql)][0]
+
+    except Exception:
+        print(traceback.format_exc())
+        return []
+
 
 data_path = Path(__file__).parents[3] / "dataset" / "evaluation_data.csv"
 
@@ -258,14 +295,21 @@ data_into_vector_database = [
 
 bpmn_data_preprocessor = BPMNDataPreProcessor()
 
-sentence_transformers = SentenceTransformer("all-MiniLM-L6-v2")
-
 dictionary_name = "activity_example"
 
 collection_name = "activity_example"
 
+embedding_name, model_url, env_api_key_name = get_embedding_model(EMBEDDING_MODEL)
+
+embedding_llm = LLM(
+    model_name=embedding_name,
+    model_url=model_url,
+    api_key=os.environ.get(env_api_key_name),
+    schema_output=None
+)
+
 chroma_db_client = ChromaDatabaseClient(
-    embedding_model=sentence_transformers,
+    embedding_model=embedding_llm,
     dictionary_name=dictionary_name,
     collection_name=collection_name,
 )
@@ -293,19 +337,15 @@ for item in data_into_vector_database:
             activity_sid = bpmn_data_preprocessor.get_sid_from_activity_field_of_bpmn_file(activity)
 
             if activity_sid == current_sid and current_sid == val_reason.get("value", ""):
-
                 activity_name = bpmn_data_preprocessor.get_name_from_activity_field_of_bpmn_file(activity)
 
                 reason = val_reason.get("reason", "")
 
                 data_to_fill.append({
-                        "meta_data": {
-                            "sql": build_sql_query(current_category, reason)
-                        },
-                        "content": activity_name
+                    "meta_data": {
+                        "sql": build_sql_query(current_category, reason)
+                    },
+                    "content": activity_name
                 })
 
-
 chroma_db_client.fill_collection_with_meta_data(data_to_fill)
-
-
