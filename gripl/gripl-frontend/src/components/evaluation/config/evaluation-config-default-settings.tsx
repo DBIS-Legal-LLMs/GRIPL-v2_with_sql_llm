@@ -1,13 +1,16 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Label} from "@/components/ui/label";
+import {Input} from "@/components/ui/input";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Switch} from "@/components/ui/switch";
+import {Separator} from "@/components/ui/separator";
 import {EndpointChoice} from "@/models/evaluation/Config";
 import {GenerateRandomInput} from "@/components/ui/input-generate-random";
+import {Button} from "@/components/ui/button";
+import {ModelConfig, LLMComponentKey, LLM_COMPONENTS} from "@/components/evaluation/config/sql-llms-config";
+
 
 interface EvaluationConfigDefaultSettingsProps {
     availableEvaluationEndpoints: AnalysisEndpoint[];
@@ -20,6 +23,7 @@ interface EvaluationConfigDefaultSettingsProps {
     useRag: boolean;
     ragMode: string;
     evaluateRag: boolean;
+    useSQLLM: boolean;
     activitiesOnly: boolean;
     setDefaultEndpointChoice: (endpoint: EndpointChoice) => void;
     setDefaultPresetEndpoint: (endpoint: string) => void;
@@ -30,15 +34,19 @@ interface EvaluationConfigDefaultSettingsProps {
     setUseRag: (v: boolean) => void;
     setRagMode: (v: string) => void;
     setEvaluateRag: (v: boolean) => void;
+    setuseSQLLM: (v: boolean) => void;
     setActivitiesOnly: (v: boolean) => void;
+    modelConfigs: Record<LLMComponentKey, ModelConfig[]>;
+    setModelConfigs: React.Dispatch<React.SetStateAction<Record<LLMComponentKey, ModelConfig[]>>>;
 }
 
 const RAG_MODES = [
-    { value: "hybrid", label: "Hybrid (recommended)" },
-    { value: "local", label: "Local" },
-    { value: "global", label: "Global" },
-    { value: "naive", label: "Naive" },
+    {value: "hybrid", label: "Hybrid (recommended)"},
+    {value: "local", label: "Local"},
+    {value: "global", label: "Global"},
+    {value: "naive", label: "Naive"},
 ];
+
 
 export default function EvaluationConfigDefaultSettings(props: EvaluationConfigDefaultSettingsProps) {
     const {
@@ -52,6 +60,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         useRag,
         ragMode,
         evaluateRag,
+        useSQLLM,
         activitiesOnly,
         setDefaultEndpointChoice,
         setDefaultPresetEndpoint,
@@ -62,8 +71,58 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
         setUseRag,
         setRagMode,
         setEvaluateRag,
+        setuseSQLLM,
         setActivitiesOnly,
+        modelConfigs,
+        setModelConfigs,
     } = props;
+
+    const handleModelChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, model: value} : config
+            );
+            return updated;
+        });
+    };
+
+    const handleApiKeyNameChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, apiKeyName: value} : config
+            );
+            return updated;
+        });
+    };
+
+    const handleBaseUrlChange = (componentKey: LLMComponentKey, index: number, value: string) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            updated[componentKey] = updated[componentKey].map((config, i) =>
+                i === index ? {...config, baseUrl: value} : config
+            );
+            return updated;
+        });
+    };
+
+    const addConfig = (componentKey: LLMComponentKey) => {
+        setModelConfigs((prev) => ({
+            ...prev,
+            [componentKey]: [...prev[componentKey], {model: '', apiKeyName: '', baseUrl: ''}],
+        }));
+    };
+
+    const removeConfig = (componentKey: LLMComponentKey, index: number) => {
+        setModelConfigs((prev) => {
+            const updated = {...prev};
+            if (updated[componentKey].length > 1) {
+                updated[componentKey] = updated[componentKey].filter((_, i) => i !== index);
+            }
+            return updated;
+        });
+    };
 
     return (
         <Card>
@@ -125,20 +184,22 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                            value={Number.isFinite(repetitions) ? repetitions : 1}
                            onChange={(e) => onRepetitionsChange(parseInt(e.target.value, 10) || 1)}
                            className="w-full"/>
-                    <p className="text-sm text-muted-foreground">The evaluation will be repeated n times to gather statistics.</p>
+                    <p className="text-sm text-muted-foreground">The evaluation will be repeated n times to gather
+                        statistics.</p>
                 </div>
                 <div className="space-y-2">
                     <Label>Seed</Label>
                     <GenerateRandomInput id="seed" placeholder="Optional seed for reproducibility"
-                           length={8}
-                           value={seed || ""}
-                           alphabet={"0123456789"}
-                           onChange={(e) => setSeed(parseInt(e.target.value))}
-                           className="w-full"/>
-                    <p className="text-sm text-muted-foreground">Warning: Not all models support a seed, but it will be used for models that support them.</p>
+                                         length={8}
+                                         value={seed || ""}
+                                         alphabet={"0123456789"}
+                                         onChange={(e) => setSeed(parseInt(e.target.value))}
+                                         className="w-full"/>
+                    <p className="text-sm text-muted-foreground">Warning: Not all models support a seed, but it will be
+                        used for models that support them.</p>
                 </div>
 
-                <Separator />
+                <Separator/>
 
                 {/* ── Evaluation Scope ──────────────────────────────── */}
                 <div className="flex items-center justify-between">
@@ -156,7 +217,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                     />
                 </div>
 
-                <Separator />
+                <Separator/>
 
                 {/* ── RAG Configuration ─────────────────────────────── */}
                 <div className="space-y-4">
@@ -187,7 +248,7 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                                 <Label>RAG Mode</Label>
                                 <Select value={ragMode} onValueChange={setRagMode}>
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RAG_MODES.map((m) => (
@@ -218,7 +279,69 @@ export default function EvaluationConfigDefaultSettings(props: EvaluationConfigD
                             </div>
                         </>
                     )}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <Label htmlFor="use-sql-llm-toggle">Use SQL LLM </Label>
+                            <p className="text-xs text-muted-foreground">
+                                The LLM receives GDPR knowledge of SQL databases.
+                            </p>
+                        </div>
+                        <Switch
+                            id="use-sql-llm-toggle"
+                            checked={useSQLLM}
+                            onCheckedChange={setuseSQLLM}
+                        />
+                    </div>
                 </div>
+                {useSQLLM && (
+                    <div className="space-y-6">
+                        {LLM_COMPONENTS.map((component) => (
+                            <div key={component.key} className="space-y-2">
+                                <Label className="text-sm font-medium">{component.label}</Label>
+                                <p className="text-xs text-muted-foreground">{component.description}</p>
+
+                                {modelConfigs[component.key].map((config, index) => (
+                                    <div key={index} className="flex items-center space-x-2">
+                                        <Input
+                                            placeholder="Modellname"
+                                            value={config.model}
+                                            onChange={(e) => handleModelChange(component.key, index, e.target.value)}
+                                        />
+                                        <Input
+                                            placeholder="API-Key Name (Env-Variable)"
+                                            value={config.apiKeyName}
+                                            onChange={(e) => handleApiKeyNameChange(component.key, index, e.target.value)}
+                                        />
+                                        <Input
+                                            placeholder="Base URL (optional)"
+                                            value={config.baseUrl}
+                                            onChange={(e) => handleBaseUrlChange(component.key, index, e.target.value)}
+                                        />
+                                        {index > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeConfig(component.key, index)}
+                                                aria-label="Eintrag entfernen"
+                                            >
+                                                Entfernen
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addConfig(component.key)}
+                                    className="mt-1"
+                                >
+                                    Weitere Konfiguration hinzufügen
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
