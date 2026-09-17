@@ -70,7 +70,6 @@ export default function EvaluationPage({datasets}: EvaluationPageProps) {
         POST_PROCESSING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
         VERIFICATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
         EMBEDDING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
     });
 
     const handleSqlLlmConfigChange = useCallback((configs: Record<LLMComponentKey, ModelConfig[]>) => {

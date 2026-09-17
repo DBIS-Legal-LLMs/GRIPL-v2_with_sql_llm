@@ -64,7 +64,6 @@ export default function EvaluationConfig({
         POST_PROCESSING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
         VERIFICATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
         EMBEDDING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        CROSS_ENCODING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
     });
 
     useEffect(() => {
