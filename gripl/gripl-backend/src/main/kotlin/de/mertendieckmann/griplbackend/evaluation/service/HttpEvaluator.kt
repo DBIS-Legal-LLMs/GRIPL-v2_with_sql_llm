@@ -61,6 +61,12 @@ class HttpEvaluator(
                 )
                 .contentType(MediaType.APPLICATION_JSON)
         }
+        // Forward RAG parameters — the analysis endpoint defaults to false/hybrid when omitted,
+        // but we send them explicitly so behaviour matches the evaluation request config.
+        bodyBuilder.part("useRag", evaluationRequest.useRag.toString())
+        bodyBuilder.part("ragMode", evaluationRequest.ragMode.toString())
+        bodyBuilder.part("useSQLLM", evaluationRequest.useSQLLM.toString())
+        bodyBuilder.part("activitiesOnly", evaluationRequest.activitiesOnly.toString())
 
         bodyBuilder.part(
             "useRag",
