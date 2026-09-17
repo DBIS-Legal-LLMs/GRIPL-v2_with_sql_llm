@@ -88,20 +88,20 @@ class Evaluator:
 
             test_data = {
                 "INTENTION_MODEL": [
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                     ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                 ],
                 "SQL_GENERATION_MODEL": [
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                     ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                 ],
                 "POST_PROCESSING_MODEL": [
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                     ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                 ],
                 "VERIFICATION_MODEL": [
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                     ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
                 ],
                 "EMBEDDING_MODEL": [
                     ("all-MiniLM-L6-v2", "", ""),
