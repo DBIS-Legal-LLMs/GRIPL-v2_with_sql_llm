@@ -16,7 +16,8 @@ from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackM
 from app.prompt_management_component.prompt_management import PromptManagement
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
 from dotenv import load_dotenv
-from app.config.component_name import INTENTION_MODEL, SQL_GENERATION_MODEL, POST_PROCESSING_MODEL, VERIFICATION_MODEL
+from app.config.component_name import (INTENTION_MODEL, SQL_GENERATION_MODEL, POST_PROCESSING_MODEL,
+                                       VERIFICATION_MODEL, EMBEDDING_MODEL)
 from pathlib import Path
 import asyncio
 

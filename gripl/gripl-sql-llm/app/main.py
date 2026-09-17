@@ -162,18 +162,12 @@ def get_pipeline(
 
         post_processing_mcp_client = PostProcessingMcpClient()
 
-        embedding_model_name = get_embedding_or_reranker(
-            EMBEDDING_MODEL
-        )
-
-        model = SentenceTransformer(embedding_model_name)
-
         dictionary_name = "activity_example"
 
         collection_name = "activity_example"
 
         chroma_db_client = ChromaDatabaseClient(
-            embedding_model=model,
+            embedding_model_handler=embedding_model_handler,
             dictionary_name=dictionary_name,
             collection_name=collection_name,
         )
@@ -226,26 +220,3 @@ def get_pipeline(
         print(traceback.format_exc())
         return PipelineComponent()
 
-
-def get_embedding_or_reranker(
-        component_name: str,
-    ):
-        try:
-
-            sql_execution_component = SQLExecution()
-
-            sql = f"""
-                                SELECT name
-                                FROM fallback_llm
-                                 WHERE corresponding_comment = '{component_name}'
-                                ORDER BY "order" ASC
-                                LIMIT 1;
-                                
-                        """
-
-            return  [execution_result.get("name", "") for execution_result in
-                    sql_execution_component.get_sql_query_results(sql)][0]
-
-        except Exception:
-            print(traceback.format_exc())
-            return []

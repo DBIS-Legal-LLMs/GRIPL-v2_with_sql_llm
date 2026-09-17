@@ -105,10 +105,10 @@ class ChromaDatabaseClient:
         try:
             collection = self.get_collection()
 
-            embedded_query = self.embedding_model_handler.get_embedding_of_current_embedding_model([query])
+            embedded_query = self.embedding_model_handler.get_embedding_of_current_embedding_model([query])[0]
 
             results = collection.query(
-                        query_embeddings=[embedded_query.tolist()],
+                        query_embeddings=[embedded_query],
                         n_results=self.top_k
                     )
 
@@ -117,7 +117,7 @@ class ChromaDatabaseClient:
             return list(zip(documents, metadatas))
 
         except Exception as e:
-                print(e)
+                print(traceback.format_exc())
                 return []
 
 

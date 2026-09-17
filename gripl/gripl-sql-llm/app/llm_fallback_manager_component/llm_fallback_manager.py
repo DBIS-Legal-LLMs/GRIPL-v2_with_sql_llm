@@ -127,9 +127,9 @@ class LLMFallBackManager:
                 try:
 
                     llm = LLM(
-                        model_name=model_name,
+                        model_name=model,
                         model_url=model_url,
-                        api_key=os.getenv(api_key_env_name),
+                        api_key=os.getenv(env_api_key_name),
                         schema_output=None
                     )
 
@@ -139,6 +139,8 @@ class LLMFallBackManager:
 
                 except Exception as e:
                     print(f"Model {model} failed after all retries. Trying next model...")
+                    print("get error in getting embedidng")
+                    print(traceback.format_exc())
                     continue
 
             return []
