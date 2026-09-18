@@ -112,6 +112,8 @@ See [gripl/gripl-backend/README.md](gripl/gripl-backend/README.md) for instructi
 
 See [gripl/gripl-frontend/README.md](gripl/gripl-frontend/README.md) for instructions on running the frontend locally.
 
+See [gripl/gripl-sql-llm/README.md](gripl/gripl-sql-llm/README.md) for prerequisites before using this service.
+
 The RAG service can be run locally by installing the dependencies from `gripl/gripl-rag/requirements.txt` and starting it with `uvicorn app.main:app --reload --port 8081` from the `gripl/gripl-rag` directory. It requires a running Neo4j instance, which can be started with Docker (see `docker-compose.yml`). This is the same requirements file used by the Docker image. Note that on Linux, the system libraries `libgl1` and `libglib2.0-0` are additionally required by PyMuPDF / LightRAG (the Docker image installs them automatically; on Windows they are bundled with the pip wheels).
 
 Local development requires a running PostgreSQL database. The simplest option is to start a fresh instance with Docker and set the backend’s database connection via environment variables. On startup, the backend will automatically create any missing tables.
