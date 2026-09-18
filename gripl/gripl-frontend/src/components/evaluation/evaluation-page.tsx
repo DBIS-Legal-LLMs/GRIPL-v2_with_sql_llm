@@ -27,13 +27,8 @@ import MetricsTable from "@/components/evaluation/charts/aggregated/metrics-tabl
 import {useToast} from "@/components/ui/toast";
 import {useEvaluationJob} from "@/components/providers/evaluation-job-provider";
 import {toErrorMessage} from "@/lib/http-error";
-import {ModelConfig, LLMComponentKey, LLM_COMPONENTS} from "@/components/evaluation/config/sql-llms-config";
+import {ModelConfig, LLMComponentKey} from "@/components/evaluation/config/sql-llms-config";
 
-type ModelReportEnvelope = {
-    modelLabel: string;
-    report: EvaluationReport;
-    runNumber: number;
-};
 import {
     applyClassSelectionToSummary,
     ALL_CLASSES_FILTER,
@@ -76,13 +71,7 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
     const { colors, setColors } = useColors()
     const { showToast, showError } = useToast()
 
-    const [sqlLlmConfigs, setSqlLlmConfigs] = useState<Record<LLMComponentKey, ModelConfig[]>>({
-        INTENTION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        SQL_GENERATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        POST_PROCESSING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        VERIFICATION_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-        EMBEDDING_MODEL: [{model: '', apiKeyName: '', baseUrl: ''}],
-    });
+    const { sqlLlmConfigs, setSqlLlmConfigs } = useEvaluationJob()
 
     const handleSqlLlmConfigChange = useCallback((configs: Record<LLMComponentKey, ModelConfig[]>) => {
         setSqlLlmConfigs(configs);
@@ -568,38 +557,6 @@ export default function EvaluationPage({ datasets }: EvaluationPageProps) {
         document.getElementById("upload-json-report")?.click()
     };
 
-    const flattenSqlLlmConfigs = () => {
-        const modelParts: string[] = [];
-        const apiKeyParts: string[] = [];
-        const baseUrlParts: string[] = [];
-
-        LLM_COMPONENTS.forEach(component => {
-            const configs = sqlLlmConfigs[component.key] || [];
-            const compModels: string[] = [];
-            const compApiKeys: string[] = [];
-            const compBaseUrls: string[] = [];
-
-            configs.forEach(cfg => {
-                const modelName = cfg.model.trim();
-                if (!modelName) return;
-                compModels.push(modelName);
-                compApiKeys.push(cfg.apiKeyName.trim());
-                compBaseUrls.push(cfg.baseUrl.trim());
-            });
-
-            if (compModels.length > 0) {
-                modelParts.push(`${component.key}:${compModels.join(',')}`);
-                apiKeyParts.push(`${component.key}:${compApiKeys.join(',')}`);
-                baseUrlParts.push(`${component.key}:${compBaseUrls.join(',')}`);
-            }
-        });
-
-        return {
-            modelsString: modelParts.join(';'),
-            apiKeyNamesString: apiKeyParts.join(';'),
-            baseUrlsString: baseUrlParts.join(';'),
-        };
-    };
 
     const summariesByModel = useMemo(
         () => Array.from(summary.entries()).map(([label, s]) => ({label, summary: s})),
