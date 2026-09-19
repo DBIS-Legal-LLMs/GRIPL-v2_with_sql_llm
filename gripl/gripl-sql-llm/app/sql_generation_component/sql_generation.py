@@ -60,6 +60,9 @@ class SQLGenerator:
                 messages
             ).query
 
+            print("current generated query")
+            print(answer)
+
             self.logging_component.log(
                 user_prompt,
                 system_prompt,

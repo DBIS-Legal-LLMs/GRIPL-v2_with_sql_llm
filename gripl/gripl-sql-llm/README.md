@@ -124,10 +124,10 @@ For each component, configure:
 
 - Model name
 - OpenRouter API URL
-- Environment variable name of the API key
+- Environment variable name of the API key, the env file in `gripl-sql-llm` directory:
 
 The environment variable name must match the name defined
-in the `.env` file.
+in the `.env` file in `gripl-sql-llm` directory
 
 Example:
 
@@ -136,7 +136,7 @@ model = "your-model-name"
 
 model_url = "https://openrouter.ai/api/v1"
 
-env_api_key_name = "YOUR_API_KEY_ENV_NAME"
+env_api_key_name = "OPEN_ROUTER_API_KEY"
 ```
 
 The actual configuration depends on the individual component.
@@ -154,13 +154,7 @@ Create or update the `.env` file in the project directory.
 Example:
 
 ```dotenv
-YOUR_API_KEY_ENV_NAME=your-api-key
-```
-
-Use the exact environment variable names referenced in:
-
-```text
-app/evaluator_component/evaluator.py
+OPEN_ROUTER_API_KEY=your-api-key
 ```
 
 Do not commit API keys or other secrets to the repository.
@@ -179,19 +173,30 @@ The following scripts are provided for this purpose.
 
 ## 0. Make sure in gripl-sql-llm directory is a test.db file
 
-## 1. Insert Data into the SQLite Database
+## 1. Insert Data into the SQLite Database from `gripl-sql-llm` directory:
 
 Run the following script:
 
 ```text
-scripts/insert_data_in_db.py
+python -m scripts.insert_data_in_db
 ```
 
 From the `gripl-sql-llm` directory:
 
 ```bash
-python scripts/insert_data_in_db.py
+python -m scripts.insert_data_in_db
 ```
+
+## 2. start the mcp server
+
+1. From the `gripl-sql-llm` directory:
+
+2. run 
+
+```bash
+python -m app.sql_post_processing_component.post_processing_mcp_server
+```
+
 
 ### Purpose
 
@@ -210,17 +215,15 @@ Run this script before starting the evaluation.
 
 ## 2. Insert Examples into the Vector Database
 
+From the `gripl-sql-llm` directory:
+
 Run the following script:
 
 ```text
-scripts/fill_example_in_vector_database.py
+python -m scripts.fill_example_in_vector_database
 ```
 
-From the `gripl-sql-llm` directory:
 
-```bash
-python scripts/fill_example_in_vector_database.py
-```
 
 ### Purpose
 
@@ -296,10 +299,10 @@ python -m pip install -r requirements.txt
 # app/evaluator_component/evaluator.py
 
 # Insert GDPR-related data into the SQLite database
-python scripts/insert_data_in_db.py
+python -m scripts.insert_data_in_db
 
 # Insert examples into the vector database
-python scripts/fill_example_in_vector_database.py
+python -m scripts.fill_example_in_vector_database
 
 # Run the evaluation
 python -m app.evaluator_component.evaluate_main
@@ -312,7 +315,7 @@ python -m app.evaluator_component.evaluate_main
 The NLP-to-SQL service can also be started as part of
 the GRIPL application using Docker Compose of the original project.
 
-The Docker Compose configuration is located in:
+The Docker Compose configuration is located in the root dictionary:
 
 ```text
 docker-compose.local.yml

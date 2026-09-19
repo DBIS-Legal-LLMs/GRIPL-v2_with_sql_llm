@@ -53,6 +53,9 @@ class FindIntention:
                 messages,
             ).intents
 
+            print("current intentions")
+            print(answer)
+
             self.logging_component.log(
                 user_prompt,
                 system_prompt,

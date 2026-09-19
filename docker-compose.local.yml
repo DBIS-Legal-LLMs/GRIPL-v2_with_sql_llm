@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
     env_file:
-      - .env.local
+      - .env
 
     environment:
         - MCP_SERVER_URL=http://mcp-server:7000/sse
