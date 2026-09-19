@@ -149,7 +149,7 @@ the evaluation.
 
 ## Configure Environment Variables
 
-Create or update the `.env` file in the project directory.
+Create or update the `.env` file in `gripl-sql-llm` directory.
 
 Example:
 
