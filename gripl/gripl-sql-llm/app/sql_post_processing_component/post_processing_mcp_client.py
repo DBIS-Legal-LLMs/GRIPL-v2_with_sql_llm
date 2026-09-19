@@ -143,7 +143,12 @@ class PostProcessingMcpClient:
                                             verification_system_prompt,
                                             verification_answer.final_query,
                                         )
-                                        return verification_answer.final_query
+                                        answer =  verification_answer.final_query
+
+                                        print("post processed query before all iterations")
+                                        print(answer)
+
+                                        return answer
 
                                 current_intention = verification_answer.intention
                                 current_reasons_list = [verification_answer.reason]
@@ -165,6 +170,9 @@ class PostProcessingMcpClient:
                         verification_system_prompt,
                         final_query,
                     )
+
+                    print("post processed query after all iterations")
+                    print(answer)
 
                     return final_query
 
