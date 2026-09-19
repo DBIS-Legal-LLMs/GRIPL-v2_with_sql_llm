@@ -105,23 +105,23 @@ class Evaluator:
 
             test_data = {
                 "INTENTION_MODEL": [
-                    ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-120b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
                 ],
                 "SQL_GENERATION_MODEL": [
-                    ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-120b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
                 ],
                 "POST_PROCESSING_MODEL": [
-                    ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-120b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
                 ],
                 "VERIFICATION_MODEL": [
-                    ("openai/gpt-oss-120b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
-                    ("openai/gpt-oss-20b", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-120b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
+                    ("openai/gpt-oss-20b", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1"),
                 ],
                 "EMBEDDING_MODEL": [
-                    ("openai/text-embedding-3-small", "CUSTOM_OPEN_ROUTER", "https://openrouter.ai/api/v1/embeddings"),
+                    ("openai/text-embedding-3-small", "OPEN_ROUTER_API_KEY", "https://openrouter.ai/api/v1/embeddings"),
                 ],
             }
 
