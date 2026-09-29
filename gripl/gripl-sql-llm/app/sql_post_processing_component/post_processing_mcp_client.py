@@ -145,9 +145,6 @@ class PostProcessingMcpClient:
                                         )
                                         answer =  verification_answer.final_query
 
-                                        print("post processed query before all iterations")
-                                        print(answer)
-
                                         return answer
 
                                 current_intention = verification_answer.intention

@@ -4,6 +4,9 @@ from app.prompt_management_component.prompt_management import PromptManagement
 from app.sql_execution_component.sql_execution import SQLExecution
 from pathlib import Path
 import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FindIntention:
 
@@ -53,8 +56,7 @@ class FindIntention:
                 messages,
             ).intents
 
-            print("current intentions")
-            print(answer)
+            logger.info("current intentions: %s", answer)
 
             self.logging_component.log(
                 user_prompt,

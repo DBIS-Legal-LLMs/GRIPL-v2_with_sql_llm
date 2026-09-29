@@ -6,6 +6,9 @@ from app.sql_generation_component.sql_generation import SQLGenerator
 from app.sql_post_processing_component.sql_post_processing import SQLPostProcessing
 from app.bpmn_data_pre_processor_component.bpmn_data_pre_processor import BPMNDataPreProcessor
 from app.database.utils import get_db_schema_string
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PipelineComponent:
 
@@ -92,6 +95,8 @@ class PipelineComponent:
                 few_shot_examples=formated_few_shot_examples,
             )
 
+            logger.info("current generated query:\n%s", generated_quer)
+
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
 
             error_message = ""
@@ -107,6 +112,8 @@ class PipelineComponent:
                 intentions=intentions,
                 reasons_of_intentions=reasons_of_intention,
             )
+
+            logger.info("post processed query before all iterations:\n%s", post_processed_query)
 
             results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")
 
