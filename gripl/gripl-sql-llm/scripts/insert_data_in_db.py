@@ -490,7 +490,7 @@ try:
 
             if category_id is None:
                 print(
-                    f"⚠️ Kategorie nicht gefunden: {category_name}"
+                    f"️ Kategorie nicht gefunden: {category_name}"
                 )
                 continue
 
