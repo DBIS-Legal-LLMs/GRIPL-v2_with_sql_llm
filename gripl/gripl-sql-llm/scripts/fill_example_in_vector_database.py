@@ -9,6 +9,7 @@ import os
 from app.config.component_name import EMBEDDING_MODEL
 import traceback
 from app.sql_execution_component.sql_execution import SQLExecution
+from app.llm_fallback_manager_component.llm_fallback_manager import LLMFallBackManager
 
 load_dotenv()
 
@@ -301,15 +302,13 @@ collection_name = "activity_example"
 
 embedding_name, model_url, env_api_key_name = get_embedding_model(EMBEDDING_MODEL)
 
-embedding_llm = LLM(
-    model_name=embedding_name,
-    model_url=model_url,
-    api_key=os.environ.get(env_api_key_name),
+embedding_llm_handler = LLMFallBackManager(
+    llm_component_name=EMBEDDING_MODEL,
     schema_output=None
 )
 
 chroma_db_client = ChromaDatabaseClient(
-    embedding_model=embedding_llm,
+    embedding_model_handler=embedding_llm_handler,
     dictionary_name=dictionary_name,
     collection_name=collection_name,
 )
