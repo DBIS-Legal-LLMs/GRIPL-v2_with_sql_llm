@@ -95,7 +95,9 @@ class PipelineComponent:
                 few_shot_examples=formated_few_shot_examples,
             )
 
-            logger.info("current generated query:\n%s", generated_quer)
+            print("generated query")
+            print(generated_query)
+
 
             results_of_generated_query = self.sql_execution.get_sql_query_results(generated_query)[0].get("reason", "")
 
@@ -113,9 +115,11 @@ class PipelineComponent:
                 reasons_of_intentions=reasons_of_intention,
             )
 
-            logger.info("post processed query before all iterations:\n%s", post_processed_query)
+            print("post processed query")
+            print(post_processed_query)
 
             results_of_post_processed_query = self.sql_execution.get_sql_query_results(post_processed_query)[0].get("reason", "")
+
 
             if results_of_post_processed_query:
                 return {

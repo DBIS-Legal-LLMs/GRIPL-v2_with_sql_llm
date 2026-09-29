@@ -56,7 +56,9 @@ class FindIntention:
                 messages,
             ).intents
 
-            logger.info("current intentions: %s", answer)
+
+            print("current intention")
+            print(answer)
 
             self.logging_component.log(
                 user_prompt,
