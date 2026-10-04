@@ -163,8 +163,10 @@ Do not commit API keys or other secrets to the repository.
 
 # Preparing the Evaluation
 
+In the test.db must be the choosen models inserted.
+The columns component_name in llm_fallback -> see in config-component_name.py
 Before running the local evaluation, the required data must be
-inserted into the SQLite database and example activities must be
+inserted into the SQLite database test.db and example activities must be
 loaded into the vector database.
 
 The following scripts are provided for this purpose.
@@ -249,6 +251,13 @@ After modifying the examples, run the script again to update
 the vector database.
 
 ---
+
+# Running in GRIPL 
+
+
+use as custom url the following: http://gripl-nlpsql:8082/analyze
+
+
 
 # Running the Local Evaluation
 

@@ -300,7 +300,6 @@ dictionary_name = "activity_example"
 
 collection_name = "activity_example"
 
-embedding_name, model_url, env_api_key_name = get_embedding_model(EMBEDDING_MODEL)
 
 embedding_llm_handler = LLMFallBackManager(
     llm_component_name=EMBEDDING_MODEL,
